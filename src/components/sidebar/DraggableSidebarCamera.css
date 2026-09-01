@@ -1,0 +1,99 @@
+/* DraggableSidebarCamera Styles */
+
+.draggable-camera {
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.draggable-camera:active {
+  cursor: grabbing;
+}
+
+.draggable-camera.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.draggable-camera .camera-name {
+  user-select: none;
+  pointer-events: none;
+}
+
+.draggable-camera .camera-icon {
+  user-select: none;
+  pointer-events: none;
+}
+
+.draggable-camera .drag-indicator {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  background: rgba(74, 144, 226, 0.9);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1001;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Hover effects */
+.draggable-camera:hover {
+  background-color: rgba(74, 144, 226, 0.1);
+  border-radius: 4px;
+}
+
+.draggable-camera:focus {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Accessibility improvements */
+.draggable-camera:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* Ensure proper spacing and alignment */
+.draggable-camera .camera-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(0.8);
+}
+
+.draggable-camera:hover .camera-icon img {
+  filter: brightness(1);
+}
+
+/* Bookmarked state styling */
+.draggable-camera.bookmarked {
+  background-color: rgba(255, 193, 7, 0.1);
+}
+
+.draggable-camera.bookmarked:hover {
+  background-color: rgba(255, 193, 7, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .draggable-camera .drag-indicator {
+    display: none; /* Hide drag indicator on mobile */
+  }
+}

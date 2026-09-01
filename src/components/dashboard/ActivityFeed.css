@@ -1,0 +1,154 @@
+.activity-feed {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(19, 36, 71, 0.1);
+  border: 1px solid rgba(19, 36, 71, 0.05);
+  transition: all 0.3s ease;
+  height: fit-content;
+}
+
+.activity-feed:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(19, 36, 71, 0.15);
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(19, 36, 71, 0.1);
+}
+
+.activity-header svg {
+  color: #132447;
+  font-size: 1.25rem !important;
+}
+
+.activity-header h3 {
+  margin: 0;
+  color: #132447;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.activity-item:hover {
+  background: rgba(19, 36, 71, 0.02);
+}
+
+.activity-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 0.5rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.activity-icon svg {
+  font-size: 1.125rem !important;
+}
+
+.activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-title {
+  font-weight: 600;
+  color: #132447;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.activity-description {
+  color: #7A869A;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+}
+
+.activity-timestamp {
+  color: #7A869A;
+  font-size: 0.625rem;
+  font-style: italic;
+}
+
+.no-activity {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #7A869A;
+}
+
+.no-activity p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Scrollbar styling */
+.activity-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.activity-list::-webkit-scrollbar-track {
+  background: rgba(19, 36, 71, 0.05);
+  border-radius: 2px;
+}
+
+.activity-list::-webkit-scrollbar-thumb {
+  background: rgba(19, 36, 71, 0.2);
+  border-radius: 2px;
+}
+
+.activity-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(19, 36, 71, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .activity-feed {
+    padding: 1rem;
+  }
+  
+  .activity-item {
+    padding: 0.5rem;
+  }
+  
+  .activity-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .activity-icon svg {
+    font-size: 1rem !important;
+  }
+  
+  .activity-title {
+    font-size: 0.8125rem;
+  }
+  
+  .activity-description {
+    font-size: 0.6875rem;
+  }
+}

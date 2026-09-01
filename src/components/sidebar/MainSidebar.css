@@ -1,0 +1,237 @@
+.sidebar {
+  width: 250px;
+  background-color: #181818;
+  color: #fff;
+  padding: 20px 0;
+  border-right: 1px solid #333;
+  height: 100%;
+  position: fixed;
+  left: 0;
+  top: 71px; /* Match tab-bar height */
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  margin-bottom: 10px;
+}
+
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  font-weight: bold;
+  color: #333;
+}
+
+.map-section {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.map-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sidebar-btn {
+  width: 100%;
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-btn:hover {
+  background-color: transparent;
+}
+
+.sidebar-btn.active {
+  background-color: #e0e0e0;
+  font-weight: bold;
+}
+
+.sidebar-btn-sub {
+  padding: 10px 20px;
+  font-size: 13px;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-btn-sub:hover {
+  background-color: transparent;
+  color: #fff;
+}
+
+.sidebar-btn-sub.active {
+  background-color: transparent;
+  color: #fff;
+  font-weight: 500;
+}
+
+.collection-count {
+  font-size: 12px;
+  color: #888;
+  margin-left: 8px;
+}
+
+.sidebar-icon {
+  margin-right: 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+}
+
+.sidebar-dropdown {
+  background-color: #1a1a1a;
+  padding: 5px 0;
+}
+
+.sidebar-message {
+  padding: 10px;
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+}
+
+.add-device-btn {
+  background-color: #0078d4;
+  margin: 10px 24px;
+  border-radius: 4px;
+  width: calc(100% - 48px);
+  padding: 8px 0;
+  text-align: center;
+  justify-content: center;
+}
+
+.add-device-btn:hover {
+  background-color: transparent;
+}
+
+.collections-content {
+  width: 100%;
+}
+
+.collection-item {
+  margin-bottom: 4px;
+}
+
+.collection-item-container {
+  margin-bottom: 4px;
+}
+
+.camera-list {
+  margin-left: 20px;
+  padding-left: 10px;
+  border-left: 1px solid #333;
+}
+
+.camera-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #aaa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.camera-item:hover {
+  color: #fff;
+  background-color: #2a2a2a;
+}
+
+.camera-icon {
+  margin-right: 8px;
+  font-size: 12px;
+}
+
+.camera-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-item {
+  position: relative;
+  width: 100%;
+}
+
+.bookmark-camera-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+}
+
+.bookmark-camera-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bookmark-camera-details .camera-name {
+  font-weight: 500;
+  color: #ddd;
+}
+
+.bookmark-camera-details .camera-ip {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.bookmark-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFD700;
+  color: #000;
+  font-size: 11px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  margin-left: 8px;
+  padding: 0 5px;
+}
+
+.remove-bookmark-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.remove-bookmark-button:hover {
+  opacity: 1;
+}
+
+.remove-bookmark-button img {
+  filter: brightness(0) invert(1);
+}
+
+.bookmark-indicator {
+  margin-left: auto;
+  color: #FFD700;
+  font-size: 12px;
+}

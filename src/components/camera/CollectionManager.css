@@ -1,0 +1,369 @@
+.collection-manager {
+  display: flex;
+  height: 100%;
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+/* Left Sidebar */
+.collections-sidebar {
+  width: 300px;
+  background-color: #2a2a2a;
+  border-right: 1px solid #3a3a3a;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.collections-header {
+  margin-bottom: 1.5rem;
+}
+
+.header-with-close {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.close-manager-button {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-manager-button:hover {
+  color: #fff;
+  background-color: transparent;
+}
+
+.collections-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.create-collection-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.create-collection-button:hover {
+  background-color: #45a049;
+}
+
+.collection-form {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #333;
+  border-radius: 4px;
+}
+
+.collection-input {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #444;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.collection-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.save-button {
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-button {
+  padding: 0.5rem 1rem;
+  background-color: #666;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.collections-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.collection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #333;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.collection-item:hover {
+  background-color: #ffffff;
+}
+
+.collection-item.selected {
+  background-color: #4CAF50;
+}
+
+.collection-name {
+  font-size: 0.9rem;
+}
+
+.collection-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collection-count {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.collection-action-button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.collection-action-button:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.collection-edit-form {
+  width: 100%;
+}
+
+/* Main Panel */
+.collection-details {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.collection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.collection-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.collection-title h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #fffdfd;
+  font-weight: 600;
+}
+
+.collection-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.layout-controls {
+  display: flex;
+  align-items: center;
+}
+
+.rtsp-stream-button {
+  padding: 0.5rem 1rem;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.rtsp-stream-button:hover {
+  background-color: #c0392b;
+}
+
+.close-collection-button {
+  padding: 0.5rem 1rem;
+  background-color: #666;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.collection-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.collection-camera-grid {
+  flex: 1;
+  min-height: 0;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(122, 50, 255, 0.2);
+}
+
+.no-collection-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.no-collection-selected h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #FFFFFF;
+}
+
+.no-collection-selected p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.no-collections {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2rem;
+}
+
+.no-collections p {
+  margin: 0.5rem 0;
+}
+
+.error-message {
+  color: #FF3D81; /* Using ravia-pink */
+  background-color: rgba(255, 61, 129, 0.1);
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 61, 129, 0.2);
+}
+
+/* Camera Management Section */
+.camera-management-section {
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h4 {
+  margin: 0;
+  color: #fff;
+}
+
+.add-camera-button {
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.add-camera-button:hover {
+  background-color: #45a049;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #2a2a2a;
+  padding: 2rem;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.confirm-button {
+  padding: 0.5rem 1rem;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirm-button:hover {
+  background-color: #d32f2f;
+}

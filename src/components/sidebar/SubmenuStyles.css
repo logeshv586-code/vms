@@ -1,0 +1,197 @@
+/**
+ * SubmenuStyles.css
+ *
+ * This file contains styles for sidebar submenus across all modules.
+ * It ensures consistent styling, positioning, and behavior for all dropdown menus.
+ *
+ * Key features:
+ * - Proper alignment with parent items
+ * - Consistent styling and animations
+ * - Custom scrollbar for overflow
+ * - Accessibility support
+ */
+
+/*
+ * Submenu Container
+ *
+ * Positioning:
+ * - Sits flush to the right edge of the expanded sidebar (0px horizontal gap)
+ * - Top edge aligns with parent item's top padding
+ * - Width = sidebar width (240px) minus the sidebar's left padding for icons (16px)
+ */
+.sidebar-submenu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 240px; /* Same as expanded sidebar width */
+  background-color: #333; /* Match sidebar background */
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 1000;
+
+  /* Animation for opening */
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: none;
+}
+
+/* Active submenu */
+.sidebar-submenu.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* Submenu list container */
+.sidebar-submenu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: calc(100vh - 96px); /* viewport height - (sidebar header height + 32px bottom margin) */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for submenu */
+.sidebar-submenu-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-submenu-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.sidebar-submenu-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.sidebar-submenu-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Submenu item */
+.sidebar-submenu-item {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+  position: relative;
+}
+
+.sidebar-submenu-item:hover {
+  background-color: transparent;
+}
+
+.sidebar-submenu-item.active {
+  background-color: #4A4A4A;
+  border-left: 4px solid #E76F51;
+  padding-left: 12px; /* Adjust for the border */
+}
+
+/* Focus styles for keyboard navigation */
+.sidebar-submenu-item:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3) inset;
+}
+
+/* Submenu item icon */
+.sidebar-submenu-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-submenu-icon img,
+.sidebar-submenu-icon svg {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* Submenu item label */
+.sidebar-submenu-label {
+  margin-left: 12px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* Nested submenu container */
+.sidebar-nested-submenu {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0 24px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 8px;
+}
+
+/* Submenu section header */
+.sidebar-submenu-header {
+  padding: 8px 16px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+/* Submenu divider */
+.sidebar-submenu-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 8px 0;
+}
+
+/* Submenu empty state message */
+.sidebar-submenu-empty {
+  padding: 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Submenu count badge */
+.sidebar-submenu-count {
+  margin-left: auto;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Submenu notification dot */
+.sidebar-submenu-notification {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #E76F51;
+  margin-left: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar-submenu {
+    position: static;
+    width: 100%;
+    box-shadow: none;
+    background-color: rgba(0, 0, 0, 0.2);
+    margin-top: 4px;
+    border-radius: 4px;
+  }
+
+  .sidebar-submenu-list {
+    max-height: 300px;
+  }
+}

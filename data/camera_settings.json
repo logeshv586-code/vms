@@ -1,0 +1,61 @@
+{
+  "192.168.4.243": {
+    "resolution": {
+      "width": 1280,
+      "height": 720
+    },
+    "onvif_credentials": {
+      "username": "admin",
+      "password": "Admin@123",
+      "port": 80
+    },
+    "stream_settings": {
+      "streamType": null,
+      "videoType": null,
+      "bitrateType": null,
+      "videoQuality": null,
+      "frameRate": 25,
+      "maxBitrate": 1024,
+      "videoEncoding": null,
+      "profile": null,
+      "iFrameInterval": null
+    },
+    "failed_settings": {
+      "profile": "Setting 'profile' requires Hikvision web interface. ONVIF doesn't sync these settings properly with Hikvision cameras. Use camera web interface at http://192.168.4.243"
+    },
+    "applied_settings": {
+      "frameRate": 25,
+      "maxBitrate": 1024
+    }
+  },
+  "192.168.4.242": {
+    "stream_settings": {
+      "streamType": null,
+      "videoType": null,
+      "bitrateType": null,
+      "videoQuality": null,
+      "frameRate": 10,
+      "maxBitrate": 5144,
+      "videoEncoding": "H.265",
+      "profile": null,
+      "iFrameInterval": null
+    },
+    "failed_settings": {
+      "profile": "Setting 'profile' requires Hikvision web interface. ONVIF doesn't sync these settings properly with Hikvision cameras. Use camera web interface at http://192.168.4.242"
+    },
+    "onvif_credentials": {
+      "username": "admin",
+      "password": "Admin@123",
+      "port": 80
+    },
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "applied_settings": {
+      "frameRate": 10,
+      "maxBitrate": 5144,
+      "videoEncoding": "H.265"
+    }
+  }
+}

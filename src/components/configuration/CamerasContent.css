@@ -1,0 +1,161 @@
+.cameras-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* Content Toolbar - New professional toolbar */
+.content-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  margin-bottom: 16px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  width: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.toolbar-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Base button styles */
+.add-collection-button,
+.add-camera-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* Spacing between icon and text */
+  height: 40px; /* Fixed height */
+  min-width: 140px; /* Minimum width */
+  padding: 0 16px; /* Horizontal padding */
+  border-radius: 6px; /* Modern border radius */
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Primary Button - Manage Collection */
+.add-collection-button {
+  background-color: #0070f3; /* Royal blue color */
+  color: #ffffff;
+  border: 1px solid #0070f3;
+  box-shadow: 0 2px 4px rgba(0, 112, 243, 0.1);
+}
+
+.add-collection-button:hover {
+  background-color: #005bc5; /* Darker blue */
+  border-color: #005bc5;
+  box-shadow: 0 4px 8px rgba(0, 112, 243, 0.15);
+}
+
+.add-collection-button:active {
+  background-color: #004da5;
+  box-shadow: 0 2px 4px rgba(0, 112, 243, 0.1);
+}
+
+/* Secondary Button - Add New Camera */
+.add-camera-button {
+  background-color: #ffffff;
+  color: #0070f3; /* Royal blue */
+  border: 1px solid #0070f3;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.add-camera-button:hover {
+  background-color: rgba(0, 112, 243, 0.04); /* Light blue tint */
+  box-shadow: 0 2px 4px rgba(0, 112, 243, 0.08);
+}
+
+.add-camera-button:active {
+  background-color: rgba(0, 112, 243, 0.08);
+}
+
+/* Button icon styles */
+.button-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.add-collection-button .button-icon {
+  filter: brightness(0) invert(1); /* Make icon white */
+}
+
+.add-camera-button .button-icon {
+  filter: invert(30%) sepia(90%) saturate(2000%) hue-rotate(205deg) brightness(95%) contrast(100%); /* Make icon blue */
+}
+
+/* Focus states for accessibility */
+.add-collection-button:focus,
+.add-camera-button:focus {
+  outline: 2px solid #0070f3;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 112, 243, 0.2);
+}
+
+/* Main content area */
+.cameras-content-main {
+  flex: 1;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+  min-height: 0; /* Allow flex child to shrink */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .content-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .add-collection-button,
+  .add-camera-button {
+    width: 100%;
+  }
+}
+
+.cameras-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.collection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.collection-name {
+  font-weight: 500;
+}
+
+.collection-count {
+  color: #6c757d;
+  font-size: 14px;
+}

@@ -1,0 +1,81 @@
+.add-camera-form {
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+}
+
+.camera-url-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background-color: #262626;
+  color: #fff;
+}
+
+.add-camera-button {
+  padding: 0.5rem 1rem;
+  background-color: #E37814;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-camera-button:hover {
+  background-color: #f48825;
+}
+
+.video-cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #262626;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.video-cell.highlighted {
+  box-shadow: 0 0 0 2px #E37814;
+}
+
+.video-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #333333;
+}
+
+.camera-info {
+  color: #E37814;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+}
+
+.placeholder-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #333333;
+}
+
+/* Dragging styles */
+.video-cell.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+.video-cell:hover {
+  transform: scale(1.01);
+}

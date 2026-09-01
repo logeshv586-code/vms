@@ -1,0 +1,409 @@
+/*
+ * UNIFIED BLUE TO BLACK THEME FOR TAB BAR
+ * This CSS creates a consistent blue to black gradient color scheme for the tab bar
+ * - Blue to black gradient background with white text and borders
+ * - Modern glass-morphism design with backdrop blur effects
+ * - Maintains visual consistency across the application
+ */
+
+.App {
+  /*text-align: center;*/
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF; /* White background */
+  overflow: hidden;
+  /* Ensure no gaps in the layout */
+  margin: 0;
+  padding: 0;
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Tab Bar - Blue to Black Gradient Background */
+.tab-bar {
+  background: #132447f0; /* Blue to black gradient background */
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 16px rgba(0, 41, 157, 0.3);
+  margin-left: 60px; /* Start with collapsed sidebar width */
+  width: calc(100% - 60px); /* Start with collapsed sidebar width */
+  color: #FFFFFF; /* White text content */
+  font-family: 'Montserrat', sans-serif;
+  transition: margin-left 220ms ease-in-out, width 220ms ease-in-out; /* Match sidebar transition */
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 999; /* Below sidebar but above content */
+}
+
+/* Right Controls (User + Performance Metrics) */
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-right: 10px;
+}
+
+/* User Controls */
+.user-controls {
+  display: flex;
+  align-items: center;
+  order: 1; /* Ensure user controls come first */
+}
+
+/* User Info - Purple Theme */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #FFFFFF; /* White text */
+  background: rgba(255, 255, 255, 0.15); /* Semi-transparent white background */
+  padding: 8px 16px;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2); /* White border */
+}
+
+.username {
+  font-weight: 600;
+  color: #FFFFFF; /* White username text */
+  letter-spacing: 0.5px;
+}
+
+.role-badge {
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%); /* Blue to black gradient */
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #000000; /* White text */
+  font-weight: 500;
+  box-shadow: 0 0 10px rgba(0, 41, 157, 0.4); /* Blue shadow */
+}
+
+/* Logout Button - Purple Theme */
+.logout-button {
+  background: rgba(255, 255, 255, 0.2); /* Semi-transparent white background */
+  color: white; /* White text */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-left: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1); /* White shadow */
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.3); /* More opaque white on hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(255, 255, 255, 0.2); /* Stronger white shadow */
+}
+
+/* Refresh Button Styling */
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(255, 255, 255, 0.25);
+}
+
+.refresh-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+}
+
+.refresh-icon.spinning {
+  animation: spin-refresh 0.8s linear infinite;
+}
+
+@keyframes spin-refresh {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+.tabs-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-left: 20px;
+}
+
+/* Tab Buttons - Purple Theme */
+.tab-button {
+  padding: 12px 24px;
+  margin: 0 5px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1); /* Semi-transparent white background */
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.8); /* White text content */
+  position: relative;
+  overflow: hidden;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2); /* White border */
+}
+
+.tab-button:hover {
+  background-color: rgba(255, 255, 255, 0.2); /* More opaque white on hover */
+  transform: translateY(-2px);
+  color: rgba(255, 255, 255, 1); /* Pure white text on hover */
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2); /* White shadow */
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.35)); /* White gradient */
+  font-weight: 600;
+  color: #FFFFFF; /* Pure white text for active state */
+  border: 1px solid rgba(255, 255, 255, 0.4); /* White border */
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); /* White shadow */
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #FFFFFF; /* White underline for active tab */
+}
+
+/* Search Bar Styles - White Background */
+.search-container {
+  margin: 0 20px;
+}
+
+.search-input {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.2); /* Black border */
+  background: rgba(255, 255, 255, 0.9); /* White background */
+  color: black; /* Black text */
+  width: 200px;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #000000; /* Black border on focus */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Black shadow */
+  background: rgba(255, 255, 255, 1); /* Solid white background on focus */
+}
+
+/* Sidebar Search Bar Styles */
+.sidebar .search-container {
+  margin: 10px 0 20px 0;
+  width: 100%;
+}
+
+.sidebar .search-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  margin-bottom: 10px;
+  color: black;
+}
+
+.search-input::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Content Layout */
+.content-wrapper {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  height: calc(100vh - 71px); /* Subtract tab-bar height */
+  gap: 0; /* Eliminate any gap between sidebar and main content */
+  margin-left: 0; /* No additional margin - handled by individual components */
+}
+
+/* Sidebar Styles - Import the animated sidebar styles */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* All sidebar styles are now consolidated in UniversalSidebar.css */
+/* Legacy sidebar class - kept for compatibility */
+.sidebar {
+  /* Styles are handled by UniversalSidebar.css */
+  position: relative;
+}
+
+.App-main {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #FFFFFF, #F8F9FA);
+  margin-left: 60px; /* Start with collapsed sidebar width */
+  width: calc(100% - 60px); /* Start with collapsed sidebar width */
+  color: #000000;
+  transition: margin-left 220ms ease-in-out, width 220ms ease-in-out; /* Match sidebar transition */
+  /* Ensure no gap with sidebar */
+  padding-left: 24px;
+  margin-right: 0;
+  position: relative;
+}
+
+.App-main::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tab-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.tab-content h2 {
+  margin-bottom: 24px;
+  color: #000000;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  position: relative;
+  display: inline-block;
+}
+
+.tab-content h2::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(to right, #000000, #343A40);
+  border-radius: 3px;
+}
+
+.tab-content p {
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.dashboard-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .tab-bar {
+    flex-direction: column;
+    padding: 10px;
+    margin-left: 0 !important; /* For mobile, sidebar will be hidden or shown as overlay */
+    width: 100% !important; /* Full width on mobile */
+    transition: all 220ms ease-in-out;
+  }
+
+  .tabs-container {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+
+  .tab-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  /* Adjust main content for mobile */
+  .App-main {
+    margin-left: 0 !important; /* No sidebar margin on mobile */
+    width: 100% !important; /* Full width on mobile */
+    transition: all 220ms ease-in-out;
+  }
+}
+
+/* Archive Content Styling */
+.archive-content {
+  height: 100%;
+  width: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+.archive-content .archive-playback-content,
+.archive-content .current-recordings-content {
+  height: 100%;
+  width: 100%;
+}
+
+/* Ensure proper spacing and layout for archive components */
+.archive-content > div {
+  height: 100%;
+}
+
+/* Configuration Content — fills the full main area with light theme */
+.configuration-content {
+  height: calc(100% + 48px);
+  width: calc(100% + 48px);
+  margin: -24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  position: relative;
+}
+
+/* AI Detection Content — full bleed dark layout */
+.ai-detection-content {
+  height: calc(100% + 48px);
+  width: calc(100% + 48px);
+  margin: -24px;
+  overflow: hidden;
+  background: #0a0a0a;
+  position: relative;
+}

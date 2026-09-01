@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --ravia-bg-dark: #FFFFFF;
+  --ravia-bg-medium: #F8F9FA;
+  --ravia-bg-light: #E9ECEF;
+  --ravia-cyan: #000000;
+  --ravia-purple: #000000;
+  --ravia-pink: #000000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #FFFFFF, #F8F9FA);
+  color: #000000;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, rgba(0, 229, 255, 0.3), rgba(122, 50, 255, 0.3));
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, rgba(0, 229, 255, 0.5), rgba(122, 50, 255, 0.5));
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Common button styles */
+button {
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: 0.3px;
+}
+
+/* Remove all default button hover/active/focus effects */
+button:hover,
+button:active,
+button:focus {
+  /*background-color: transparent !important;
+  background: transparent !important;*/
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove Material UI ripple effects and hover states */
+.MuiButtonBase-root:hover,
+.MuiButtonBase-root:active,
+.MuiButtonBase-root:focus,
+.MuiIconButton-root:hover,
+.MuiIconButton-root:active,
+.MuiIconButton-root:focus,
+.MuiListItem-root:hover,
+.MuiListItem-root:active,
+.MuiListItem-root:focus {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Remove all ripple effects */
+.MuiTouchRipple-root {
+  display: none !important;
+}
+
+/* Ensure all sidebar elements have transparent hover effects */
+.sidebar *:hover,
+.sidebar-btn:hover,
+.sidebar-btn-sub:hover,
+.sidebar-item:hover,
+.sidebar-section:hover,
+.events-sidebar *:hover,
+.events-sidebar-item:hover,
+.collections-sidebar *:hover,
+.universal-sidebar *:hover,
+.universal-sidebar-item:hover,
+.menu-item:hover,
+.submenu-item:hover,
+.dropdown-item:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.sidebar-btn:hover,
+.sidebar-btn.active,
+.sidebar-btn:focus {
+  background-color: transparent !important;
+  border-left: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  outline: none !important;
+  /* Remove any transform if you don't want scale effect */
+  transform: none !important;
+}
+
+/* Common card styles */
+.card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+
+/* Glowing text effect */
+.glow-text {
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(to right, #000000, #343A40);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

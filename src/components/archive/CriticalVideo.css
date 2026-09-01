@@ -1,0 +1,525 @@
+/* Premium Critical Video & Gemma VLM Reasoning Styles */
+
+.critical-video-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  background: radial-gradient(circle at top left, #1c0a0a 0%, #050101 100%);
+  min-height: 100vh;
+  color: #f1f5f9;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-y: auto;
+}
+
+/* Header */
+.critical-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+  padding-bottom: 20px;
+}
+
+.critical-header .title-section h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffffff 30%, #ef4444 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+
+.critical-header .title-section p {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.alert-count-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+}
+
+.octagon-icon {
+  width: 18px;
+  height: 18px;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(1); opacity: 0.8; filter: drop-shadow(0 0 2px #ef4444); }
+  50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 12px #ef4444); }
+  100% { transform: scale(1); opacity: 0.8; filter: drop-shadow(0 0 2px #ef4444); }
+}
+
+/* Incident Mapped Layout */
+.critical-workspace-layout {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .critical-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Left Column: Registry */
+.registry-column {
+  display: flex;
+  flex-direction: column;
+  max-height: 750px;
+  background: rgba(17, 24, 39, 0.6);
+}
+
+.registry-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.registry-header-row h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-ico {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: #94a3b8;
+}
+
+.registry-search {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 8px 12px 8px 36px;
+  font-size: 0.85rem;
+  outline: none;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.registry-search:focus {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+}
+
+.threats-list-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.threats-list-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.threats-list-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.threat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.threat-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.threat-item.selected {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.1);
+}
+
+.threat-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.threat-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.threat-badge.critical { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; }
+.threat-badge.high-alert { background: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.3); color: #f97316; }
+.threat-badge.attention-required { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.3); color: #eab308; }
+
+.confidence-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.threat-item-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.threat-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+/* Right Column: Evidence Display */
+.evidence-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.border-red-glow {
+  border-top: 4px solid #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.05);
+}
+
+.evidence-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.evidence-label-col h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.filename-txt {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-family: monospace;
+  margin: 4px 0 0 0;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.35);
+}
+
+/* Hazard Player Container */
+.hazard-player-wrapper {
+  background: #000000;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.hazard-strip {
+  background: repeating-linear-gradient(
+    -45deg,
+    #ef4444,
+    #ef4444 10px,
+    #1e1b4b 10px,
+    #1e1b4b 20px
+  );
+  height: 24px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+}
+
+.player-viewport-container {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+.hazard-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.overlay-threat-pulse {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #ef4444;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  animation: pulse-dot-anim 1.5s infinite;
+}
+
+@keyframes pulse-dot-anim {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px #ef4444; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.hazard-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #0a0505;
+  border-top: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.hazard-play-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hazard-play-btn:hover {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: #ef4444;
+}
+
+.timeline-tracker {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+/* Gemma logs panel */
+.gemma-reasoning-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vlm-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vlm-label h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.spark-ico {
+  color: #e2e8f0;
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 0 4px #ef4444);
+}
+
+.vlm-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #cbd5e1;
+}
+
+/* Monospace terminal console */
+.terminal-log-box {
+  background: #020101;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.term-ico {
+  width: 12px;
+  height: 12px;
+}
+
+.log-body {
+  padding: 16px;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.log-body p {
+  margin: 0;
+  word-break: break-word;
+}
+
+.log-green { color: #10b981; }
+.log-white { color: #f8fafc; margin-top: 6px !important; }
+.log-amber { color: #f59e0b; margin-top: 6px !important; }
+
+/* Countermeasures */
+.action-recommendation-box {
+  background: rgba(239, 68, 68, 0.02);
+  border: 1px solid rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.recomm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.recomm-header h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.badge-ico {
+  width: 16px;
+  height: 16px;
+  color: #ef4444;
+}
+
+.recomm-body {
+  font-size: 0.85rem;
+  color: #d1d5db;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Empty evidence state */
+.evidence-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  min-height: 500px;
+}
+
+.placeholder-logo {
+  width: 64px;
+  height: 64px;
+  color: #ef4444;
+  opacity: 0.15;
+  margin-bottom: 20px;
+}
+
+.evidence-placeholder h3 {
+  font-size: 1.25rem;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+}
+
+.evidence-placeholder p {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 0;
+  max-width: 320px;
+}

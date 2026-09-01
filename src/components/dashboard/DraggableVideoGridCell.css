@@ -1,0 +1,256 @@
+/* Draggable Video Grid Cell Styles */
+.draggable-cell {
+  cursor: move;
+  transition: all 0.3s ease;
+  position: relative;
+  outline: none; /* Remove default focus outline */
+}
+
+.draggable-cell:focus {
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.5); /* Custom focus indicator */
+  border-color: rgba(0, 229, 255, 0.8);
+}
+
+.draggable-cell:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.5);
+  border-color: rgba(0, 229, 255, 0.8);
+}
+
+/* Dragging state */
+.draggable-cell.dragging {
+  opacity: 0.6;
+  transform: scale(1.05) rotate(2deg);
+  z-index: 1000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(0, 229, 255, 0.8);
+}
+
+/* Drag over state */
+.video-cell.drag-over {
+  border: 2px dashed rgba(0, 229, 255, 0.8);
+  background-color: rgba(0, 229, 255, 0.1);
+  transform: scale(1.02);
+}
+
+.placeholder-cell.drag-over {
+ /* border: 2px dashed rgba(122, 50, 255, 0.8);
+  background-color: rgba(122, 50, 255, 0.1);*/
+}
+
+/* Specific styling for sidebar camera drops */
+.video-cell.sidebar-camera-over {
+  border: 2px dashed rgba(74, 144, 226, 0.8);
+  background-color: rgba(74, 144, 226, 0.1);
+  transform: scale(1.02);
+}
+
+.video-cell.sidebar-camera-over::before {
+  content: 'Drop camera here';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(74, 144, 226, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 10;
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: fadeInOut 2s infinite;
+}
+
+/* Drag and drop indicators */
+.drag-indicator,
+.drop-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10;
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.drag-indicator {
+  background: rgba(0, 229, 255, 0.9);
+  animation: pulse 1.5s infinite;
+}
+
+.drop-indicator {
+/*  background: rgba(122, 50, 255, 0.9);*/
+  animation: bounce 1s infinite;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  40% {
+    transform: translate(-50%, -50%) translateY(-5px);
+  }
+  60% {
+    transform: translate(-50%, -50%) translateY(-3px);
+  }
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Hover effects for draggable cells */
+.draggable-cell:hover:not(.dragging) {
+  transform: scale(1.02);
+ /* box-shadow: 0 0 20px rgba(122, 50, 255, 0.5);*/
+  border-color: rgba(0, 229, 255, 0.3);
+}
+
+/* Right-click drag visual feedback */
+.draggable-cell:active {
+  cursor: grabbing;
+}
+
+/* Accessibility improvements */
+.draggable-cell[aria-grabbed="true"] {
+  opacity: 0.6;
+  transform: scale(1.05);
+}
+
+/* Screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .draggable-cell:focus {
+    box-shadow: 0 0 0 3px #ffffff;
+    border-color: #ffffff;
+  }
+
+  .drag-indicator,
+  .drop-indicator {
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .draggable-cell,
+  .drag-indicator,
+  .drop-indicator {
+    transition: none;
+    animation: none;
+  }
+
+  .draggable-cell.dragging {
+    transform: none;
+  }
+
+  .video-cell.drag-over {
+    transform: none;
+  }
+}
+
+/* Touch device support */
+@media (hover: none) and (pointer: coarse) {
+  .draggable-cell {
+    cursor: default;
+  }
+
+  .draggable-cell:hover {
+    transform: none;
+  }
+}
+
+/* Keyboard navigation indicators */
+.draggable-cell:focus .camera-card {
+  position: relative;
+}
+
+.draggable-cell:focus .camera-card::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid rgba(0, 229, 255, 0.8);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Error state for failed drops */
+.draggable-cell.drop-error {
+  animation: shake 0.5s ease-in-out;
+  border-color: #ff4444;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Loading state during drag operations */
+.draggable-cell.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.draggable-cell.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid rgba(0, 229, 255, 0.3);
+  border-top: 2px solid rgba(0, 229, 255, 1);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 10;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

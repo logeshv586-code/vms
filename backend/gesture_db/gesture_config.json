@@ -1,0 +1,9 @@
+{
+  "sos_wave_threshold": 3,
+  "sos_wave_window": 15,
+  "min_detection_confidence": 0.7,
+  "alert_categories": [
+    "help",
+    "threat"
+  ]
+}

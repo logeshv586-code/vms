@@ -1,0 +1,216 @@
+.video-grid-container {
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #FFFFFF, #F8F9FA); /* Using white gradient */
+  border-radius: 0.75rem; /* Using ravia border-radius */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); /* Using black shadow */
+}
+
+/* 1x1 Layout specific styles */
+.video-grid-container.layout-1x1 {
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 0;
+}
+
+.video-grid-container.layout-1x1 .video-grid {
+  height: 100%;
+  padding: 0;
+  gap: 0;
+}
+
+.video-grid-container.layout-1x1 .video-cell {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.video-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 1rem;
+  position: relative;
+  padding: 0.5rem;
+  min-height: 0;
+  overflow: auto;
+}
+
+.video-grid.symmetrical {
+  grid-auto-rows: 1fr;
+  grid-auto-columns: 1fr;
+}
+
+.video-grid.focus {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.video-grid.custom {
+  grid-auto-flow: dense;
+}
+
+/* Responsive grid layouts */
+@media (min-width: 1920px) {
+  .video-grid.symmetrical {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1440px) and (max-width: 1919px) {
+  .video-grid.symmetrical {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .video-grid.symmetrical {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .video-grid.symmetrical {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Focus layout specific adjustments */
+.video-grid.focus {
+  display: grid;
+  grid-template-rows: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Custom layout specific adjustments */
+.video-grid.custom {
+  grid-template-rows: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.video-cell {
+  position: relative;
+  /*background-color: #1E0B38; /* Using ravia-purple-900 */
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  aspect-ratio: 16/9;
+  /*border: 1px solid rgba(122, 50, 255, 0.2);
+  box-shadow: 0 0 15px rgba(122, 50, 255, 0.3);*/
+}
+
+.video-cell:hover {
+  transform: scale(1.02);
+  /*box-shadow: 0 0 20px rgba(122, 50, 255, 0.5);
+  border-color: rgba(0, 229, 255, 0.3);*/
+}
+
+.video-cell.bookmarked {
+  border: 2px solid #2600ffc0; /* Using ravia-cyan-500 */
+  box-shadow: 0 0 15px rgba(25, 4, 209, 0.5); /* Using ravia-glow-cyan */
+}
+
+.camera-stream {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.camera-stream img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /*background: rgba(30, 11, 56, 0.9); /* Using ravia-purple-900 with opacity */
+  color: white;
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(5px);
+  border-top: 1px solid rgba(0, 229, 255, 0.1);
+}
+
+.video-cell:hover .camera-info {
+  opacity: 1;
+}
+
+.bookmark-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: #00E5FF; /* Using ravia-cyan-500 */
+}
+
+.bookmark-button:hover {
+  transform: scale(1.1);
+  color: #04001a; /* Using ravia-purple-300 */
+}
+
+.bookmark-button img {
+  filter: brightness(0) invert(1);
+}
+
+.placeholder-cell {
+  background: rgba(255, 255, 255, 0.5); /* Using white with opacity */
+  border: 1px dashed rgba(0, 0, 0, 0.2);
+}
+
+.placeholder-cell:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.no-cameras {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.no-cameras p {
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 12px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Add a subtle grid pattern to the background */
+.video-grid-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}

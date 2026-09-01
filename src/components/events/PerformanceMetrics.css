@@ -1,0 +1,28 @@
+.performance-metrics {
+  display: flex;
+  flex-direction: column;
+  /*background-color: #898989;            White background */
+  padding: 12px 16px;               /* More padding for box feel */
+  border-radius: 8px;               /* Slightly more rounded corners */
+  gap: 6px;                         /* More space between items */
+  /*border: 1px solid #e0e0e0;         Light gray border */
+  height: auto;
+  font-size: 12px;
+  order: 2;
+  cursor: default;
+  pointer-events: none;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  color: #333;
+}
+
+.metric-text {
+  color: #333;
+  font-weight: bold;
+  font-size: 12px;
+  font-family: monospace;
+}

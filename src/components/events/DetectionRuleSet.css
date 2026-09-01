@@ -1,0 +1,218 @@
+.detection-rule-set {
+  background-color: #ffffff;
+  color: #000000;
+  padding: 20px;
+  border-radius: 8px;
+  height: 100%;
+  overflow: auto;
+  position: relative;
+}
+
+.detection-rule-set-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detection-rule-set-header h2 {
+  font-size: 1.5rem;
+  margin: 0;
+  color: #000000;
+}
+
+.success-message {
+  background-color: rgba(40, 167, 69, 0.95);
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 380px;
+  animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(8px);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.error-message {
+  background-color: rgba(220, 53, 69, 0.95);
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 380px;
+  animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(8px);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* New grid layout for detection rules */
+.detection-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.detection-rule-item {
+  background-color: #ffebee;
+  border-radius: 6px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+  border-left: 4px solid #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.detection-rule-item:hover {
+  background-color: rgba(198, 40, 40, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(198, 40, 40, 0.15);
+}
+
+.detection-rule-item.rule-enabled {
+  border-left-color: #2e7d32;
+  border-color: #a5d6a7;
+  background-color: #e8f5e9;
+}
+
+.detection-rule-item.rule-enabled:hover {
+  background-color: #c8e6c9;
+  box-shadow: 0 4px 8px rgba(46, 125, 50, 0.15);
+}
+
+.detection-rule-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  width: 100%;
+}
+
+.detection-rule-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  cursor: pointer;
+  accent-color: #4b62e1;
+}
+
+.detection-rule-name {
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.loading-indicator {
+  display: inline-block;
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.detection-rule-set-loading,
+.detection-rule-set-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 1.2rem;
+  color: #999;
+}
+
+.detection-rule-set-error {
+  color: #f44336;
+}
+
+/* Selected Rules Summary section */
+.selected-rules-summary {
+  margin-top: 40px;
+  padding: 24px;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.selected-rules-summary-header {
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.selected-rules-summary-header h3 {
+  font-size: 1.1rem;
+  margin: 0;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.no-rules-enabled {
+  color: #64748b;
+  font-size: 0.95rem;
+  font-style: italic;
+  padding: 10px 0;
+}
+
+.selected-rules-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.selected-rule-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #155724;
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.selected-rule-tag:hover {
+  transform: scale(1.03);
+  background-color: rgba(40, 167, 69, 0.15);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.1);
+}
+
+.rule-tag-id {
+  opacity: 0.6;
+  font-size: 0.75rem;
+}
+
+.rule-tag-indicator {
+  color: #28a745;
+  font-size: 0.65rem;
+  animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}

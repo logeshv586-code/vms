@@ -1,0 +1,1411 @@
+/* UniversalSidebar.css - Styling for the universal hover-to-expand sidebar */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+/**
+ * Sidebar Label Hide/Show Logic
+ *
+ * In collapsed state (60px width):
+ * - Labels are hidden using width: 0, overflow: hidden, opacity: 0
+ * - Icons are centered horizontally within the 60px column
+ * - Tooltips appear on hover after 400ms delay
+ *
+ * In expanded state (240px width):
+ * - Labels are shown with full opacity and natural width
+ * - Icons are left-aligned with consistent padding
+ * - Labels slide in from left with a transform animation
+ *
+ * This approach ensures:
+ * 1. Clean visual appearance in both states
+ * 2. Proper accessibility (screen readers can still access labels)
+ * 3. Smooth transitions between states
+ * 4. Consistent behavior across all sidebar components
+ *
+ * SVG Icon Display Logic
+ *
+ * For all icon containers:
+ * - Set display: block on SVG elements to ensure proper rendering
+ * - Use color: currentColor and fill: currentColor to inherit colors from parent
+ * - Explicitly set width and height to maintain consistent sizing
+ * - Add flex display with center alignment to icon containers
+ * - Ensure proper margins in both collapsed and expanded states
+ */
+
+/* Animation Keyframes */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Base Sidebar Container */
+.universal-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  background: #132447f0;
+  color: white;
+  overflow-x: hidden;
+  overflow-y: hidden; /* Changed from auto to hidden to prevent double scrollbars */
+  z-index: 1001; /* Above tab bar */
+  box-shadow: 4px 0 20px rgba(0, 41, 157, 0.15);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  transition: width 220ms ease-in-out, box-shadow 220ms ease;
+  scroll-behavior: smooth; /* Enable smooth scrolling */
+  border-right: none;
+}
+
+/* Initial slide-in animation - only applied once on mount */
+.universal-sidebar.initial-load {
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+/* Ensure all text within sidebar is white */
+.universal-sidebar * {
+  color: inherit;
+}
+
+.universal-sidebar,
+.universal-sidebar *:not(.universal-sidebar-count) {
+  color: #ffffff !important;
+}
+
+/* Override Dashboard.css styles */
+.collections-sidebar,
+.collections-sidebar li,
+.collections-sidebar li:hover,
+.collections-sidebar li.active {
+  background: transparent !important;
+  background-color: transparent !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* Collapsed State */
+.universal-sidebar.collapsed {
+  width: 70px;
+}
+
+/* Expanded State */
+.universal-sidebar.expanded {
+  width: 240px;
+}
+
+/* Pinned State */
+.universal-sidebar.pinned {
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Sidebar Header */
+.universal-sidebar-header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 95px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Logo Container */
+.universal-sidebar-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(0, 41, 157, 0.3), rgba(0, 0, 0, 0.3));
+  flex-shrink: 0;
+  box-shadow: 0 0 15px rgba(0, 41, 157, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.universal-sidebar-logo::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.universal-sidebar-logo:hover::after {
+  opacity: 1;
+}
+
+.universal-sidebar-logo img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+/* Title - Only visible when expanded */
+.universal-sidebar-title {
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 255ms ease;
+  background: whitesmoke;
+  -webkit-background-clip: text;
+  background-clip: text;
+  /*-webkit-text-fill-color: transparent;*/
+  /*text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);*/
+  letter-spacing: 1px;
+}
+
+.universal-sidebar.expanded .universal-sidebar-title {
+  opacity: 1;
+}
+
+
+
+
+
+/*
+ * Sidebar Content with Scrolling Functionality
+ *
+ * This container enables vertical scrolling when content exceeds the visible area.
+ * Features:
+ * - Smooth scrolling behavior for both mouse wheel and touch gestures
+ * - Custom styled scrollbar that matches the sidebar's design aesthetic
+ * - Maintains fixed height while allowing internal scrolling
+ * - All collections and camera streams remain accessible regardless of quantity
+ * - Smooth content transitions without affecting sidebar position
+ */
+.universal-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: transparent; /* Ensure transparent background */
+  max-height: calc(100vh - 60px); /* Adjust for header height */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.05); /* Firefox */
+  /* Smooth content transitions */
+  transition: opacity 150ms ease-in-out;
+  color: #000000; /* Ensure all text is black */
+  scroll-behavior: smooth; /* Enable smooth scrolling */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  padding: 0.5rem 0;
+}
+
+
+/* Custom scrollbar for WebKit browsers */
+.universal-sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.universal-sidebar-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.universal-sidebar-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3));
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.1);
+}
+
+.universal-sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.4));
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+/* Section Header */
+.universal-sidebar-section-header {
+  padding: 8px 16px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 16px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  position: relative;
+}
+
+.universal-sidebar-section-header::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 16px;
+  width: 30px;
+  height: 2px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0));
+  border-radius: 2px;
+}
+
+/* Sidebar Item Container */
+.universal-sidebar-item-container {
+  margin: 6px 0;
+}
+
+/* Sidebar Item - Base Styles */
+.universal-sidebar-item {
+  display: flex;
+  flex-direction: column; /* Stack main content and dropdown vertically */
+  align-items: stretch; /* Stretch to full width */
+  cursor: pointer;
+  transition: all 250ms ease;
+  position: relative;
+  /*margin: 4px 8px;*/
+  border-radius: 10px;
+  user-select: none;
+  /*border-left: 3px solid transparent;*/
+  overflow: visible; /* Allow dropdown to be visible */
+}
+
+/* Main item content (icon, label, chevron) */
+.universal-sidebar-item-content {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Adjust padding in collapsed state for corner positioning */
+.universal-sidebar.collapsed .universal-sidebar-item-content {
+  padding: 12px 8px;
+  justify-content: flex-start;
+}
+
+.universal-sidebar-item-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 10px;
+}
+
+.universal-sidebar-item-content:hover {
+  color: #ffffff;
+  text-shadow: none;
+  transform: translateX(3px);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.universal-sidebar-item-content:hover::before {
+  opacity: 1;
+}
+
+.universal-sidebar-item.active .universal-sidebar-item-content {
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: none;
+  background-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.universal-sidebar-item.active {
+   /*border-left: 3px solid #000000;*/
+  padding-left: 13px; /* Adjust for the border */
+}
+
+/* Focus styles for keyboard navigation */
+.universal-sidebar-item-content:focus {
+  outline: none;
+  /*box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3);*/
+  border-radius: 10px;
+}
+
+/* Icon Container */
+.universal-sidebar-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+  transition: all 250ms ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.universal-sidebar-item-content:hover .universal-sidebar-icon {
+  transform: scale(1.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.15));
+}
+
+.universal-sidebar-item.active .universal-sidebar-icon {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.2));
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Position icons towards corner in collapsed state */
+.universal-sidebar.collapsed .universal-sidebar-icon {
+  margin: 0 0 0 8px; /* Move towards left corner with 8px margin */
+}
+
+/* Left-align icons in expanded state with 16px padding */
+.universal-sidebar.expanded .universal-sidebar-icon {
+  margin: 0; /* Reset to default */
+  margin-left: 16px; /* Left padding in expanded state */
+}
+
+.universal-sidebar-icon img,
+.universal-sidebar-icon svg {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block; /* Ensure proper display */
+  color: currentColor; /* Inherit color from parent */
+  fill: currentColor; /* For SVG fill */
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2));
+}
+
+/*
+ * Item Label - Only visible when expanded
+ * In collapsed state: width: 0, opacity: 0, overflow: hidden
+ * In expanded state: normal width, opacity: 1, transform from left
+ */
+.universal-sidebar-label {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  width: 0;
+  transition: all 250ms ease;
+  transform: translateX(-8px);
+  letter-spacing: 0.3px;
+  color: #000000; /* Ensure black text */
+}
+
+.universal-sidebar.expanded .universal-sidebar-label {
+  opacity: 1;
+  width: auto;
+  transform: translateX(0);
+}
+
+.universal-sidebar-item-content:hover .universal-sidebar-label {
+  letter-spacing: 0.5px;
+}
+
+.universal-sidebar-item.active .universal-sidebar-label {
+  font-weight: 600;
+}
+
+/* Notification Indicator */
+.universal-sidebar-notification {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #000000, #343A40);
+  position: absolute;
+  right: 12px;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.universal-sidebar.collapsed .universal-sidebar-notification {
+  right: 8px;
+  top: 8px;
+}
+
+/* Count Badge */
+.universal-sidebar-count {
+  margin-left: auto;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.15));
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  min-width: 24px;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  color: #000000;
+}
+
+/* Chevron for dropdown indicators */
+.universal-sidebar-chevron {
+  margin-left: auto;
+  font-size: 10px;
+  transition: all 250ms ease;
+  margin-right: 4px;
+  color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.universal-sidebar-chevron svg {
+  width: 8px;
+  height: 8px;
+  display: block;
+  color: currentColor;
+  fill: currentColor;
+}
+
+.universal-sidebar-item:hover .universal-sidebar-chevron {
+  background: rgba(0, 229, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.universal-sidebar-chevron.expanded {
+  transform: rotate(180deg);
+  background: rgba(0, 229, 255, 0.2);
+}
+
+.universal-sidebar-item:hover .universal-sidebar-chevron.expanded {
+  transform: rotate(180deg) scale(1.1);
+}
+
+/* Tooltip Styles */
+.sidebar-tooltip {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(30, 11, 56, 0.9));
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 250ms ease;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3), 0 0 5px rgba(0, 229, 255, 0.2);
+  z-index: 1001;
+  margin-left: 10px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  letter-spacing: 0.5px;
+}
+
+/* Show tooltip after 400ms delay for all menu items when sidebar is collapsed */
+.universal-sidebar.collapsed .universal-sidebar-item:hover .sidebar-tooltip,
+.universal-sidebar.collapsed .menu-label:hover + .sidebar-tooltip,
+.universal-sidebar.collapsed .submenu-label:hover + .sidebar-tooltip,
+.universal-sidebar.collapsed .camera-link:hover + .sidebar-tooltip {
+  opacity: 1;
+  transition-delay: 300ms;
+  transform: translateY(-50%) translateX(5px);
+}
+
+/* Dropdown Container */
+.universal-sidebar-dropdown {
+  background-color: transparent;
+  margin: 8px 0 0 0; /* Position below parent item */
+  overflow: visible; /* Allow content to be visible */
+  transition: all 300ms ease;
+  padding: 8px 0 0 16px; /* Add top padding and left indent */
+  animation: fadeIn 300ms ease-out;
+  /*border-left: 1px solid rgba(0, 229, 255, 0.1);*/
+  width: calc(100% - 16px); /* Ensure content stays within sidebar bounds */
+  max-width: 100%;
+  position: relative; /* Ensure proper positioning */
+  display: block; /* Ensure block display for proper wrapping */
+}
+
+/*
+ * Sidebar Menu Structure with 16px Indentation Pattern
+ *
+ * This implements a consistent indentation system where:
+ * - Top level (Collections): padding: 12px 16px;
+ * - Second level (Collection names): padding-left: 32px; (base 16px + 16px indent)
+ * - Third level (Cameras): padding-left: 48px; (base 16px + 32px indent)
+ *
+ * Each level increases indentation by exactly 16px to create a clear visual hierarchy.
+ */
+
+/* Reset Base Styles */
+.sidebar-menu, .submenu, .subsubmenu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: block; /* Ensure natural top-down flow */
+  background: transparent !important; /* Ensure transparent background */
+}
+
+/* Override any external styles that might affect our sidebar */
+.sidebar-menu li,
+.submenu li,
+.subsubmenu li {
+  background-color: transparent !important;
+  transition: none !important;
+}
+
+.sidebar-menu li:hover,
+.submenu li:hover,
+.subsubmenu li:hover {
+  background-color: transparent !important;
+}
+
+/* Menu Item - First Level (Collections) */
+.menu-item {
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: block;
+}
+
+.menu-item.has-children {
+  margin-bottom: 4px;
+}
+
+/* Menu Label (Collections) */
+.menu-label {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px; /* Base padding */
+  background: none !important;
+  border: none;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+/* Adjust menu label padding in collapsed state */
+.universal-sidebar.collapsed .menu-label {
+  padding: 12px 8px;
+  justify-content: flex-start;
+}
+
+/* Adjust menu-label in collapsed state */
+.universal-sidebar.collapsed .menu-label span:not(.chevron) {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 150ms ease, width 0ms linear 150ms;
+}
+
+/* Adjust menu-label in expanded state */
+.universal-sidebar.expanded .menu-label span:not(.chevron) {
+  width: auto;
+  overflow: visible;
+  opacity: 1;
+  transition: opacity 150ms ease, width 0ms linear;
+}
+
+/* Position menu-icon towards corner in collapsed state */
+.universal-sidebar.collapsed .menu-icon {
+  margin: 0 0 0 8px;
+}
+
+/* Left-align menu-icon in expanded state */
+.universal-sidebar.expanded .menu-icon {
+  margin-right: 8px;
+}
+
+.menu-label:hover {
+  color: #ffffff;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  /* No background color change */
+}
+
+.menu-label:focus {
+  outline: 2px solid #132447f0;
+  outline-offset: 2px;
+  color: #ffffff;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  /* No background color change */
+}
+
+/* Menu Icon */
+.menu-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.menu-icon img,
+.menu-icon svg {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block; /* Ensure proper display */
+  color: currentColor; /* Inherit color from parent */
+  fill: currentColor; /* For SVG fill */
+}
+
+/* Submenu (Collection Names) */
+.submenu {
+  margin-top: 4px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 200ms ease;
+  background: transparent; /* Ensure transparent background */
+  width: 100%; /* Ensure full width */
+}
+
+.has-children.expanded > .submenu {
+  max-height: none; /* Allow content to expand to its natural height */
+  overflow-y: visible; /* Ensure content is visible */
+}
+
+/* Submenu Item (Collection Names) */
+.submenu-item {
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: block;
+}
+
+/* Submenu Label (Collection Names) */
+.submenu-label {
+  display: flex;
+  align-items: flex-start; /* Align to top for wrapped text */
+  width: 100%;
+  padding: 10px 16px 10px 32px; /* 16px base + 16px indent */
+  background: none !important;
+  border: none;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Adjust submenu label padding in collapsed state */
+.universal-sidebar.collapsed .submenu-label {
+  padding: 10px 8px;
+  justify-content: flex-start;
+}
+
+/* Adjust submenu-label in collapsed state */
+.universal-sidebar.collapsed .submenu-label span:not(.chevron):not(.submenu-count) {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 150ms ease, width 0ms linear 150ms;
+}
+
+/* Adjust submenu-label in expanded state */
+.universal-sidebar.expanded .submenu-label span:not(.chevron):not(.submenu-count) {
+  width: auto;
+  max-width: calc(100% - 60px); /* Reserve space for icon, chevron, and count */
+  overflow: visible;
+  opacity: 1;
+  transition: opacity 150ms ease, width 0ms linear;
+  word-wrap: break-word; /* Break long words if needed */
+  overflow-wrap: break-word; /* Modern property for word breaking */
+  white-space: normal; /* Allow text wrapping */
+  line-height: 1.3; /* Better line spacing for wrapped text */
+  flex: 1; /* Take available space */
+  min-width: 0; /* Allow shrinking */
+}
+
+/* Position submenu-icon towards corner in collapsed state */
+.universal-sidebar.collapsed .submenu-icon {
+  margin: 0 0 0 8px;
+}
+
+/* Left-align submenu-icon in expanded state */
+.universal-sidebar.expanded .submenu-icon {
+  margin-right: 8px;
+}
+
+/* Hide submenu-count in collapsed state */
+.universal-sidebar.collapsed .submenu-count {
+  display: none;
+}
+
+.submenu-label:hover {
+  color: #ffffff;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  /* No background color change */
+}
+
+.submenu-label.active {
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+  background: none !important; /* Force no background color change */
+  border-left: 2px solid #132447f0;
+  padding-left: 30px; /* Adjust for the border */
+}
+
+.submenu-label:focus {
+  outline: 2px solid #132447f0;
+  outline-offset: 2px;
+  color: #ffffff;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  /* No background color change */
+}
+
+/* Collection Icon */
+.submenu-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.submenu-icon img,
+.submenu-icon svg {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block; /* Ensure proper display */
+  color: currentColor; /* Inherit color from parent */
+  fill: currentColor; /* For SVG fill */
+}
+
+/* Collection Count */
+.submenu-count {
+  margin-left: auto;
+  margin-right: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Chevron for expand/collapse */
+.chevron {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: transform 150ms ease;
+  cursor: pointer;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chevron svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+  color: currentColor;
+  fill: currentColor;
+}
+
+.chevron:hover {
+  color: white;
+}
+
+.has-children.expanded > .menu-label .chevron,
+.has-children.expanded > .submenu-label .chevron {
+  transform: rotate(90deg);
+}
+
+/* Subsubmenu (Camera List) */
+.subsubmenu {
+  margin-top: 4px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 200ms ease;
+  /*border-left: 1px solid rgba(255, 255, 255, 0.1);*/
+  margin-left: 10px;
+  background: transparent; /* Ensure transparent background */
+  width: calc(100% - 32px); /* Ensure proper width accounting for margin */
+}
+
+.submenu-item.expanded > .subsubmenu {
+  max-height: none; /* Allow content to expand to its natural height */
+  overflow-y: visible; /* Ensure content is visible */
+}
+
+/* Camera Items */
+.subsubmenu-item {
+  margin: 0;
+  padding: 0;
+}
+
+.camera-link {
+  display: flex;
+  align-items: flex-start; /* Align to top for wrapped text */
+  padding: 8px 16px 8px 48px; /* 16px base + 32px indent */
+  font-size: 14px;
+  font-weight: normal;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  background: none !important;
+  box-sizing: border-box; /* Include padding in width calculation */
+  word-wrap: break-word; /* Break long words if needed */
+  overflow-wrap: break-word; /* Modern property for word breaking */
+}
+
+/* Adjust camera link padding in collapsed state */
+.universal-sidebar.collapsed .camera-link {
+  padding: 8px 8px;
+  justify-content: flex-start;
+}
+
+/* Adjust camera-link in collapsed state */
+.universal-sidebar.collapsed .camera-link span {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 150ms ease, width 0ms linear 150ms;
+}
+
+/* Adjust camera-link in expanded state */
+.universal-sidebar.expanded .camera-link span {
+  width: auto;
+  max-width: calc(100% - 40px); /* Reserve space for icon and padding */
+  overflow: visible;
+  opacity: 1;
+  transition: opacity 150ms ease, width 0ms linear;
+  word-wrap: break-word; /* Break long words if needed */
+  overflow-wrap: break-word; /* Modern property for word breaking */
+  white-space: normal; /* Allow text wrapping */
+  line-height: 1.3; /* Better line spacing for wrapped text */
+  flex: 1; /* Take available space */
+  min-width: 0; /* Allow shrinking */
+}
+
+/* Position camera-icon towards corner in collapsed state */
+.universal-sidebar.collapsed .camera-icon {
+  margin: 0 0 0 8px;
+}
+
+/* Left-align camera-icon in expanded state */
+.universal-sidebar.expanded .camera-icon {
+  margin-right: 8px;
+}
+
+/* Tree connector line for camera items */
+.subsubmenu-item .camera-link::before {
+  display: none !important;
+  content: none !important;
+}
+
+.camera-link:hover {
+  color: #ffffff;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  /* No background color change */
+}
+
+.camera-link:focus {
+  outline: none !important;
+  outline-offset: 0 !important;
+  color: #ffffff;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+  /* No background color change */
+}
+
+.camera-icon {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.camera-icon img,
+.camera-icon svg {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  display: block; /* Ensure proper display */
+  color: currentColor; /* Inherit color from parent */
+  fill: currentColor; /* For SVG fill */
+}
+
+/* Bookmarked Camera */
+.camera-link.bookmarked::after {
+  content: '★';
+  color: #00E5FF;
+  margin-left: auto;
+  font-size: 14px;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+  animation: glowPulse 2s infinite;
+}
+
+/* Bookmarked item */
+.universal-sidebar-dropdown-item.bookmarked::after {
+  content: '★';
+  color: #00E5FF;
+  margin-left: auto;
+  font-size: 14px;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+  animation: glowPulse 2s infinite;
+}
+
+/* Dropdown Icon */
+.universal-sidebar-dropdown-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.1), rgba(122, 50, 255, 0.1));
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.universal-sidebar-dropdown-item:hover .universal-sidebar-dropdown-icon {
+  transform: scale(1.1);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(122, 50, 255, 0.15));
+}
+
+.universal-sidebar-dropdown-item.active .universal-sidebar-dropdown-icon {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(122, 50, 255, 0.2));
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+/* Position dropdown icons towards corner in collapsed state */
+.universal-sidebar.collapsed .universal-sidebar-dropdown-icon {
+  margin: 0 0 0 8px;
+}
+
+/* Left-align dropdown icons in expanded state */
+.universal-sidebar.expanded .universal-sidebar-dropdown-icon {
+  margin-right: 8px;
+}
+
+.universal-sidebar-dropdown-icon img,
+.universal-sidebar-dropdown-icon svg {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  display: block; /* Ensure proper display */
+  color: currentColor; /* Inherit color from parent */
+  fill: currentColor; /* For SVG fill */
+  filter: drop-shadow(0 0 2px rgba(0, 229, 255, 0.2));
+}
+
+/* Dropdown Label */
+.universal-sidebar-dropdown-label {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  white-space: normal; /* Allow text wrapping */
+  word-wrap: break-word; /* Break long words if needed */
+  overflow-wrap: break-word; /* Modern property for word breaking */
+  line-height: 1.3; /* Better line spacing for wrapped text */
+  color: rgba(0, 229, 255, 0.9);
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+  flex: 1; /* Take available space */
+  min-width: 0; /* Allow shrinking */
+}
+
+.universal-sidebar-dropdown-item:hover .universal-sidebar-dropdown-label {
+  letter-spacing: 0.5px;
+  transform: translateX(2px);
+}
+
+/* Adjust dropdown label in collapsed state */
+.universal-sidebar.collapsed .universal-sidebar-dropdown-label {
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 250ms ease, width 0ms linear 250ms;
+}
+
+/* Adjust dropdown label in expanded state */
+.universal-sidebar.expanded .universal-sidebar-dropdown-label {
+  width: auto;
+  max-width: calc(100% - 40px); /* Reserve space for icon and padding */
+  overflow: visible;
+  opacity: 1;
+  transition: opacity 250ms ease, width 0ms linear;
+}
+
+/* Collection header label */
+.collection-header-item .universal-sidebar-dropdown-label {
+  color: white;
+  font-weight: 500;
+}
+
+/* Camera item label */
+.camera-item .universal-sidebar-dropdown-label {
+  color: rgba(0, 229, 255, 0.9);
+}
+
+/* Dropdown Count */
+.universal-sidebar-dropdown-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  padding-right: 4px;
+}
+
+.count-badge {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(122, 50, 255, 0.2));
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.tooltip-count {
+  opacity: 0.8;
+  font-size: 90%;
+}
+
+/* Hide dropdown count in collapsed state */
+.universal-sidebar.collapsed .universal-sidebar-dropdown-count {
+  display: none;
+}
+
+/* Universal Sidebar Message */
+.universal-sidebar-message {
+  padding: 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Dropdown Item */
+.universal-sidebar-dropdown-item {
+  display: flex;
+  align-items: flex-start; /* Align to top for wrapped text */
+  padding: 8px 12px; /* Reduced padding for better fit */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  border-radius: 8px;
+  margin: 2px 0; /* Reduced margin for better spacing */
+  border-left: 2px solid transparent;
+  overflow: visible; /* Allow content to wrap */
+  width: calc(100% - 8px); /* Account for margins */
+  max-width: calc(100% - 8px); /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width calculation */
+  word-wrap: break-word; /* Break long words */
+  overflow-wrap: break-word; /* Modern word breaking */
+}
+
+.universal-sidebar-dropdown-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0), rgba(0, 229, 255, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.universal-sidebar-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateX(3px);
+}
+
+.universal-sidebar-dropdown-item:hover::before {
+  opacity: 1;
+}
+
+.universal-sidebar-dropdown-item.active {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-left: 2px solid #000000;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Center dropdown item icons in collapsed state */
+.universal-sidebar.collapsed .universal-sidebar-dropdown-item {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+/* Add button style */
+.universal-sidebar-dropdown-item.add-device-btn {
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px dashed rgba(0, 0, 0, 0.2);
+  justify-content: center;
+  margin-top: 8px;
+  transition: all 0.3s ease;
+}
+
+.universal-sidebar-dropdown-item.add-device-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Mobile Toggle Button */
+.universal-sidebar-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1001;
+  background: linear-gradient(135deg, #00E5FF, #7A32FF);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.universal-sidebar-toggle:hover {
+  background: linear-gradient(135deg, #00E5FF, #7A32FF);
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+}
+
+.hamburger-icon {
+  font-size: 24px;
+}
+
+/* Mobile Overlay */
+.universal-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 220ms ease-in-out;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .universal-sidebar {
+    transform: translateX(-100%);
+    transition: transform 220ms ease-in-out, width 220ms ease-in-out;
+  }
+
+  .universal-sidebar.expanded {
+    transform: translateX(0);
+  }
+
+  .universal-sidebar-title {
+    opacity: 1;
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .universal-sidebar-logo {
+    cursor: pointer;
+  }
+}
+
+/* Adjust main content area */
+.App-main {
+  transition: margin-left 220ms ease-in-out, width 220ms ease-in-out;
+  margin-left: 0; /* Remove any additional margin to prevent gaps */
+}
+
+/* ==========================================
+   LIGHT THEME OVERRIDES FOR CONFIGURATION
+   ========================================== */
+.universal-sidebar.theme-light {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-right: 1px solid #e2e8f0 !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Base button and list item styles inside light sidebar */
+.universal-sidebar.theme-light .sidebar-btn {
+  color: #334155 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-btn:hover {
+  background-color: #f1f5f9 !important;
+  transform: scale(1.02);
+}
+
+.universal-sidebar.theme-light .sidebar-btn.active {
+  background-color: rgba(0, 112, 243, 0.08) !important;
+  border-left: 4px solid #0070f3 !important;
+  color: #0070f3 !important;
+  font-weight: 600 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-btn.active .sidebar-icon {
+  background-color: rgba(0, 112, 243, 0.12) !important;
+  color: #0070f3 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-btn.active span {
+  color: #0070f3 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-dropdown {
+  background-color: #f8fafc !important;
+  border-left: 2px solid #e2e8f0 !important;
+  margin-left: 12px !important;
+  padding: 6px !important;
+}
+
+.universal-sidebar.theme-light .dropdown-item {
+  color: #475569 !important;
+}
+
+.universal-sidebar.theme-light .dropdown-item:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.universal-sidebar.theme-light .dropdown-item.active {
+  background-color: rgba(0, 112, 243, 0.06) !important;
+  color: #0070f3 !important;
+  font-weight: 600 !important;
+}
+
+.universal-sidebar.theme-light .dropdown-item.active::before {
+  background-color: #0070f3 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-btn-sub {
+  color: #475569 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-btn-sub:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.universal-sidebar.theme-light .sidebar-btn-sub.active {
+  background-color: rgba(0, 112, 243, 0.08) !important;
+  border-left: 4px solid #0070f3 !important;
+  color: #0070f3 !important;
+  font-weight: 500 !important;
+}
+
+.universal-sidebar.theme-light .chevron-icon {
+  color: #64748b !important;
+}
+
+.universal-sidebar.theme-light .universal-sidebar-title {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-toggle-btn {
+  color: #64748b !important;
+}
+
+.universal-sidebar.theme-light .sidebar-toggle-btn:hover {
+  color: #0f172a !important;
+  background-color: #f1f5f9 !important;
+}
+
+.universal-sidebar.theme-light .universal-sidebar-header {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+/* Ensure counts have high contrast */
+.universal-sidebar.theme-light .collection-count,
+.universal-sidebar.theme-light .bookmark-count {
+  background-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+.universal-sidebar.theme-light .sidebar-btn.active .collection-count,
+.universal-sidebar.theme-light .sidebar-btn.active .bookmark-count {
+  background-color: rgba(0, 112, 243, 0.15) !important;
+  color: #0070f3 !important;
+}
+
+/* ─── Collapsed State Overrides for Sidebar Buttons on Desktop ─── */
+.universal-sidebar.collapsed .sidebar-btn {
+  padding: 10px 8px !important;
+  justify-content: flex-start !important;
+}
+
+.universal-sidebar.collapsed .sidebar-btn span:not(.sidebar-icon),
+.universal-sidebar.collapsed .sidebar-btn .chevron-icon,
+.universal-sidebar.collapsed .sidebar-btn .collection-count,
+.universal-sidebar.collapsed .sidebar-btn .bookmark-count {
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: none !important;
+}
+
+.universal-sidebar.collapsed .sidebar-btn .sidebar-icon {
+  margin: 0 0 0 8px !important;
+}
+
+.universal-sidebar.collapsed .sidebar-dropdown {
+  display: none !important;
+}
+
+.universal-sidebar.collapsed .chevron {
+  display: none !important;
+}
+
+

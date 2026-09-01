@@ -1,0 +1,163 @@
+.rules-on-camera {
+  padding: 12px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  color: #666666;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  position: relative;
+}
+
+.rules-on-camera-header {
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.rules-on-camera-header h2 {
+  font-size: 18px;
+  margin-bottom: 4px;
+  color: #666666;
+  font-weight: 600;
+}
+
+.rules-on-camera-header p {
+  font-size: 12px;
+  color: #666666;
+  margin: 0;
+}
+
+.rules-on-camera-filters {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.search-filter {
+  flex: 1;
+  min-width: 120px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #666666;
+  font-size: 12px;
+}
+
+.area-filter {
+  width: 120px;
+}
+
+.area-select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #666666;
+  font-size: 12px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 12px;
+}
+
+.select-all-container {
+  display: flex;
+  align-items: center;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+}
+
+.select-all-checkbox {
+  margin-right: 4px;
+  width: 14px;
+  height: 14px;
+  accent-color: #666666;
+}
+
+.filter-apply-button {
+  padding: 6px 12px;
+  background-color: #666666;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 12px;
+}
+
+.filter-apply-button:hover {
+  background-color: #888888;
+}
+
+.filter-apply-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.success-message {
+  background-color: rgba(40, 167, 69, 0.95);
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  max-width: 380px;
+  animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(8px);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.error-message {
+  background-color: rgba(220, 53, 69, 0.95);
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  max-width: 380px;
+  animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(8px);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.rules-on-camera-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  font-size: 18px;
+  color: #aaa;
+}

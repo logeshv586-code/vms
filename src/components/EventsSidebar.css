@@ -1,0 +1,28 @@
+.events-sidebar {
+  width: 250px;
+  background-color: #181818;
+  color: #fff;
+  padding: 20px 0;
+  border-right: 1px solid #333;
+  height: 100%;
+}
+
+.events-sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.events-sidebar-item.active,
+.events-sidebar-item:hover {
+  background: transparent;
+  font-weight: bold;
+}
+
+.events-sidebar-icon {
+  margin-right: 12px;
+  font-size: 14px;
+}

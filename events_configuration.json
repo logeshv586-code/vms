@@ -1,0 +1,189 @@
+{
+  "rules": [
+    {
+      "id": 1,
+      "name": "Appearance Search",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 2,
+      "name": "Camera Tamper",
+      "enabled": true,
+      "hotlisted": true,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 3,
+      "name": "Chain/Handbag Snatching",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 4,
+      "name": "Crowd Detection",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 5,
+      "name": "Eve Teasing",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 6,
+      "name": "Face Capture",
+      "enabled": true,
+      "hotlisted": true,
+      "show_popup": true,
+      "play_audio": false
+    },
+    {
+      "id": 7,
+      "name": "Face Recognition",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 8,
+      "name": "Gesture Detection",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 9,
+      "name": "Graffiti and Vandalism Detection",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": true,
+      "play_audio": false
+    },
+    {
+      "id": 10,
+      "name": "Intrusion Detection",
+      "enabled": true,
+      "hotlisted": true,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 11,
+      "name": "Lakshmanrekha Crossing",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": true,
+      "play_audio": false
+    },
+    {
+      "id": 12,
+      "name": "Loitering",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 13,
+      "name": "Mobile Snatching",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 14,
+      "name": "Object Classification",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 15,
+      "name": "People Fighting",
+      "enabled": true,
+      "hotlisted": true,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 16,
+      "name": "Person Collapsing",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 17,
+      "name": "Strike / Morcha / Hartal / Procession",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": true,
+      "play_audio": false
+    },
+    {
+      "id": 18,
+      "name": "Suspected Appearance",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 19,
+      "name": "Unattended Object",
+      "enabled": true,
+      "hotlisted": true,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 20,
+      "name": "Women Surrounded by Men",
+      "enabled": true,
+      "hotlisted": true,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 21,
+      "name": "Women/Infant Abduction",
+      "enabled": true,
+      "hotlisted": true,
+      "show_popup": true,
+      "play_audio": true
+    },
+    {
+      "id": 22,
+      "name": "Vehicle Monitoring",
+      "enabled": false,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    },
+    {
+      "id": 23,
+      "name": "Zone Monitoring",
+      "enabled": true,
+      "hotlisted": false,
+      "show_popup": false,
+      "play_audio": false
+    }
+  ],
+  "statistics": []
+}

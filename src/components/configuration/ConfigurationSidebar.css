@@ -1,0 +1,110 @@
+.sidebar {
+  width: 250px;
+  background-color: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  margin-bottom: 10px;
+}
+
+/* Remove any hover effects from sidebar sections */
+.sidebar-section:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.sidebar-btn {
+  width: 100%;
+  padding: 10px 15px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: #495057;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.sidebar-btn:hover {
+  background-color: transparent;
+}
+
+.sidebar-btn.active {
+  background-color: #e9ecef;
+  font-weight: bold;
+}
+
+.sidebar-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 10px;
+}
+
+.sidebar-dropdown {
+  padding-left: 15px;
+  background-color: transparent;
+}
+
+/* Remove any hover effects from dropdown containers */
+.sidebar-dropdown:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.dropdown-item {
+  padding: 5px 0;
+}
+
+.sidebar-btn-sub {
+  padding: 8px 15px;
+  font-size: 13px;
+}
+
+.add-device-btn {
+  color: #007bff;
+}
+
+.sidebar-message {
+  padding: 8px 15px;
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.cameras-content {
+  padding: 15px;
+}
+
+.add-collection-button {
+  width: 100%;
+  padding: 10px 15px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.add-collection-button:hover {
+  background-color: #0056b3;
+}
+
+.add-collection-button .sidebar-icon {
+  margin-right: 8px;
+}
+
+/* Remove all hover effects to match collection sidebar behavior */
+.sidebar-dropdown:hover,
+.sidebar-dropdown *:hover,
+.sidebar-section *:hover,
+.dropdown-item:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+}

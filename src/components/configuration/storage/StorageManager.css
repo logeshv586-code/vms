@@ -1,0 +1,388 @@
+.storage-manager-card {
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #FFFFFF;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 41, 157, 0.3);
+  border: 1px solid rgba(0, 41, 157, 0.2);
+  color: #000000;
+}
+
+.storage-manager-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #132447;
+  border-bottom: 1px solid rgba(0, 41, 157, 0.2);
+  padding-bottom: 10px;
+}
+
+.storage-type-toggle {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.storage-type-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.storage-type-radio {
+  margin-right: 8px;
+}
+
+.storage-type-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.storage-table-container {
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+
+.storage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #000000;
+}
+
+.storage-table-header {
+  background-color: #132447f0;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+.storage-table-cell {
+  padding: 12px 16px;
+  text-align: center;
+  border: 1px solid rgba(0, 41, 157, 0.2);
+}
+
+.storage-table-row:hover {
+  background-color: rgba(0, 41, 157, 0.05);
+}
+
+.storage-table-empty {
+  text-align: center;
+  padding: 24px;
+  color: #666666;
+}
+
+.storage-action-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.storage-enable-button {
+  background-color: #132447;
+  color: white;
+}
+
+.storage-enable-button:hover {
+  background-color: #00299d;
+}
+
+.storage-disable-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.storage-disable-button:hover {
+  background-color: #d32f2f;
+}
+
+.storage-add-button-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.storage-add-button {
+  padding: 10px 20px;
+  background-color: #132447;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.storage-add-button:hover {
+  background-color: #00299d;
+}
+
+.storage-add-button:disabled {
+  background-color: #999999;
+  cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.storage-table-loading {
+  text-align: center;
+  padding: 24px;
+  color: #666666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.storage-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 41, 157, 0.3);
+  border-radius: 50%;
+  border-top-color: #132447;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error Message */
+.storage-error-message {
+  background-color: #FFF0F0;
+  border-left: 4px solid #f44336;
+  color: #000000;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.storage-error-dismiss {
+  background: none;
+  border: none;
+  color: #666666;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 8px;
+}
+
+.storage-error-dismiss:hover {
+  color: #000000;
+}
+
+/* Modal */
+.storage-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.storage-modal {
+  background-color: #FFFFFF;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 41, 157, 0.5);
+  padding: 24px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 41, 157, 0.2);
+  color: #000000;
+}
+
+.storage-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #132447;
+  border-bottom: 1px solid rgba(0, 41, 157, 0.2);
+  padding-bottom: 10px;
+}
+
+.storage-form-group {
+  margin-bottom: 16px;
+}
+
+.storage-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.storage-form-group input,
+.storage-form-group select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 41, 157, 0.2);
+  background-color: #FFFFFF;
+  color: #000000;
+  font-size: 14px;
+}
+
+.storage-form-group input:focus,
+.storage-form-group select:focus {
+  outline: none;
+  border-color: #132447;
+  box-shadow: 0 0 0 2px rgba(0, 41, 157, 0.1);
+}
+
+.storage-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.storage-modal-cancel {
+  padding: 10px 16px;
+  background-color: transparent;
+  color: #666666;
+  border: 1px solid rgba(0, 41, 157, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.storage-modal-cancel:hover {
+  background-color: rgba(0, 41, 157, 0.05);
+  color: #000000;
+}
+
+.storage-modal-submit {
+  padding: 10px 16px;
+  background-color: #132447;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.storage-modal-submit:hover {
+  background-color: #00299d;
+}
+
+.storage-modal-submit:disabled {
+  background-color: #999999;
+  cursor: not-allowed;
+}
+
+/* Action Buttons in Table */
+.storage-action-cell {
+  min-width: 100px;
+}
+
+.storage-action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.storage-edit-button,
+.storage-delete-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 41, 157, 0.2);
+  background-color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.storage-edit-button {
+  color: #132447;
+}
+
+.storage-edit-button:hover {
+  background-color: rgba(0, 41, 157, 0.1);
+}
+
+.storage-delete-button {
+  color: #f44336;
+}
+
+.storage-delete-button:hover {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.storage-edit-button:disabled,
+.storage-delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.storage-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Delete Confirmation Dialog */
+.storage-confirm-dialog {
+  background-color: #FFFFFF;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 41, 157, 0.5);
+  padding: 24px;
+  width: 400px;
+  max-width: 90%;
+  border: 1px solid rgba(0, 41, 157, 0.2);
+  color: #000000;
+}
+
+.storage-confirm-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #f44336;
+  border-bottom: 1px solid rgba(0, 41, 157, 0.2);
+  padding-bottom: 10px;
+}
+
+.storage-confirm-message {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.storage-confirm-warning {
+  color: #f44336;
+  margin-bottom: 24px;
+  font-weight: 500;
+}
+
+.storage-delete-confirm-button {
+  padding: 10px 16px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.storage-delete-confirm-button:hover {
+  background-color: #d32f2f;
+}
+
+.storage-delete-confirm-button:disabled {
+  background-color: #999999;
+  cursor: not-allowed;
+}

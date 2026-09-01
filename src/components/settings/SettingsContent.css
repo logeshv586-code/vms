@@ -1,0 +1,20 @@
+.settings-content-container {
+  flex: 1;
+  height: 100%;
+  overflow: auto;
+  background: linear-gradient(135deg, #FFFFFF, #F8F9FA); /* Using white gradient */
+  padding: 0;
+}
+
+.logs-content {
+  padding: 20px;
+  color: #000000;
+  font-size: 14px;
+}
+
+.settings-placeholder {
+  padding: 20px;
+  color: #000000;
+  font-size: 14px;
+  text-align: center;
+}

@@ -1,0 +1,201 @@
+.replication-policy-card {
+  background-color: rgba(255, 255, 255);
+  border-radius: 8px;
+  padding: 24px;
+  color: #000000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.replication-policy-title {
+  font-size: 24px;
+  margin-bottom: 24px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.replication-error-message,
+.replication-success-message {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.replication-error-message {
+  background-color: rgba(220, 53, 69, 0.2);
+  border: 1px solid #dc3545;
+  color: #ff6b6b;
+}
+
+.replication-success-message {
+  background-color: rgba(40, 167, 69, 0.2);
+  border: 1px solid #28a745;
+  color: #75b798;
+}
+
+.replication-error-dismiss,
+.replication-success-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 0 0 16px;
+}
+
+.replication-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: #adb5bd;
+}
+
+.replication-loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 3px solid #007bff;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  margin-right: 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.replication-policy-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.replication-mode-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.replication-mode-dropdown {
+  background-color: #132447f0;
+  color: #ffffff;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 250px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+.replication-info-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 18px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.replication-policy-table {
+  border: 1px solid #444;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.replication-policy-header {
+  background-color: #132447f0;
+  padding: 12px 16px;
+  font-weight: 500;
+  border-bottom: 1px solid #444;
+}
+
+.replication-policy-row {
+  display: flex;
+  padding: 12px 16px;
+  border-bottom: 1px solid #444;
+  align-items: center;
+}
+
+.replication-policy-row:last-child {
+  border-bottom: none;
+}
+
+.replication-policy-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.replication-policy-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #007bff;
+  cursor: pointer;
+}
+
+.replication-policy-checkbox label {
+  cursor: pointer;
+}
+
+.replication-policy-dropdowns {
+  display: flex;
+  gap: 12px;
+}
+
+.replication-target-dropdown {
+  background-color: #132447f0;
+  color: #ffffff;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 200px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+.replication-save-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.replication-save-button {
+  background-color: #132447f0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.replication-save-button:hover {
+  background-color: #0069d9;
+}
+
+.replication-save-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}

@@ -1,0 +1,233 @@
+/* Import shared modal styles */
+@import './ModalStyles.css';
+
+/* AddCameraModal specific styles */
+.modal-content {
+  background-color: transparent; /* Override to make header/body separation work */
+}
+
+/* Override form styles for light theme */
+.modal-body .form-group label {
+  color: #000000;
+}
+
+.modal-body .form-group input,
+.modal-body .form-group select {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000000;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.modal-body .form-group input:focus,
+.modal-body .form-group select:focus {
+  border-color: #000000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.ip-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.ip-range-inputs input {
+  width: 100%;
+}
+
+.ip-range-inputs span {
+  color: #666666;
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.readonly-text {
+  padding: 8px 12px;
+  background-color: #F8F9FA;
+  border: 1px solid #E0E0E0;
+  border-radius: 4px;
+  color: #666666;
+  font-size: 14px;
+}
+
+.collection-select-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-collection-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: #FF5C5C;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  transition: color 0.2s ease;
+}
+
+.add-collection-link:hover {
+  color: #E54545;
+}
+
+.button-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Button styles are now in the shared ModalStyles.css */
+.confirm-button {
+  background: linear-gradient(135deg, #00E5FF, #7A32FF); /* Using ravia-accent-gradient */
+  color: white;
+  border: none;
+  padding: 0 16px;
+  height: 36px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.confirm-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+}
+
+.cancel-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0 16px;
+  height: 36px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Required field indicators */
+.required-asterisk {
+  color: #FF3D81; /* Using ravia-pink */
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+/* Validation error styles */
+.field-error {
+  color: #FF3D81; /* Using ravia-pink */
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+/* Error input styles */
+input.error,
+select.error {
+  border-color: #FF3D81 !important; /* Using ravia-pink */
+  box-shadow: 0 0 0 2px rgba(255, 61, 129, 0.2) !important;
+}
+
+/* Validation status indicator */
+.validation-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #FFFFFF;
+  font-size: 12px;
+}
+
+.validation-status span {
+  font-style: italic;
+}
+
+/* Disabled button styles */
+.wizard-nav-button.disabled {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+.wizard-nav-button.disabled:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: none !important;
+}
+
+/* Step validation indicators */
+.wizard-tab.validated {
+  border-bottom: 2px solid #28A745;
+}
+
+.wizard-tab.error {
+  border-bottom: 2px solid #FF5C5C;
+}
+
+/* Credential preservation indicators */
+.credential-preservation-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: #E8F5E8;
+  border: 1px solid #28A745;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #155724;
+}
+
+.credential-preservation-indicator.changed {
+  background-color: #FFF3CD;
+  border-color: #FFC107;
+  color: #856404;
+}
+
+.credential-preservation-indicator .icon {
+  width: 12px;
+  height: 12px;
+  font-weight: bold;
+}
+
+/* Enhanced RTSP URL preview */
+.rtsp-url-preview {
+  position: relative;
+}
+
+.rtsp-url-preview .readonly-text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  word-break: break-all;
+  background-color: #F8F9FA;
+  border: 1px solid #E0E0E0;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.rtsp-url-preview.preserved .readonly-text {
+  background-color: #E8F5E8;
+  border-color: #28A745;
+}
+
+.rtsp-url-preview.changed .readonly-text {
+  background-color: #FFF3CD;
+  border-color: #FFC107;
+}

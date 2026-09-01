@@ -1,0 +1,236 @@
+/* Import shared modal styles */
+@import './ModalStyles.css';
+
+/* AddCollectionModal specific styles */
+.modal-content {
+  background-color: transparent; /* Override to make header/body separation work */
+}
+
+/* Override form styles for light theme */
+.modal-body .form-group label {
+  color: #000000;
+}
+
+.modal-body .form-group input {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000000;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 0 12px;
+  height: 36px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.modal-body .form-group input:hover {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-body .form-group input:focus {
+  outline: none;
+  border-color: #000000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.modal-body .form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.collections-list {
+  margin: 20px 0;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  padding: 12px;
+  background-color: #F8F9FA;
+}
+
+.collections-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.collections-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.collections-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.collections-list h4 {
+  margin-bottom: 16px;
+  color: #333333;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.collection-item {
+  background-color: #FFFFFF;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid #E0E0E0;
+  box-shadow: 0 1px 3px rgba(251, 246, 246, 0.05);
+}
+
+.collection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(122, 50, 255, 0.2);
+}
+
+.collection-name {
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.collection-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  height: 28px;
+}
+
+.edit-button {
+  background: linear-gradient(135deg, #00E5FF, #7A32FF); /* Using ravia-accent-gradient */
+  color: white;
+}
+
+.edit-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.delete-button {
+  background-color: #FF3D81; /* Using ravia-pink */
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #FF6399; /* Using ravia-pink-400 */
+  transform: translateY(-1px);
+}
+
+/* Button styles are now in the shared ModalStyles.css */
+.confirm-button {
+  background: linear-gradient(135deg, #00E5FF, #7A32FF); /* Using ravia-accent-gradient */
+  color: white;
+  border: none;
+  padding: 0 16px;
+  height: 36px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.confirm-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+}
+
+.cancel-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0 16px;
+  height: 36px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: rgba(221, 219, 219, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Camera item styles */
+.camera-item {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(122, 50, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  
+}
+
+.camera-name {
+  color: #555555;
+  font-size: 14px;
+}
+
+.camera-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.camera-item:hover .camera-actions {
+  opacity: 1;
+  background-color: #F8F9FA;
+}
+.camera-item:hover{
+  background-color: #F8F9FA;
+}
+/* Camera edit form */
+.camera-edit-form {
+  padding: 16px;
+  background-color: #F8F9FA;
+  border-radius: 6px;
+  margin: 8px 0;
+  border: 1px solid #E0E0E0;
+}
+
+.camera-edit-form input {
+  width: 100%;
+  padding: 0 12px;
+  height: 36px;
+  border: 1px solid #CCCCCC;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background-color: #FFFFFF;
+  color: #fffdfd;
+  font-size: 14px;
+}
+
+.camera-edit-form input:focus {
+  outline: none;
+  border-color: #FF5C5C;
+  box-shadow: 0 0 0 2px rgba(255, 92, 92, 0.2);
+}
+
+.camera-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.button-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.9;
+}

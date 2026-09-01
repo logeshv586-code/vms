@@ -1,0 +1,353 @@
+.face-analytics-panel {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  color: #e6edf3;
+  font-family: 'Inter', -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* Header */
+.fap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(22, 27, 34, 0.8);
+  border-bottom: 1px solid #21262d;
+}
+.fap-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fap-icon { font-size: 1.4rem; }
+.fap-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #58a6ff, #bc8cff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.fap-stream-badge {
+  background: rgba(88, 166, 255, 0.15);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  color: #58a6ff;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.fap-refresh-btn {
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  color: #58a6ff;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all 0.2s;
+}
+.fap-refresh-btn:hover { background: rgba(88, 166, 255, 0.2); }
+.fap-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Summary stats */
+.fap-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #21262d;
+}
+@media (max-width: 600px) {
+  .fap-summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.fap-stat-card {
+  background: rgba(33, 38, 45, 0.7);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.fap-stat-card:hover { transform: translateY(-2px); }
+.fap-stat-card.fap-stat-danger {
+  border-color: rgba(255, 68, 68, 0.4);
+  background: rgba(255, 68, 68, 0.08);
+}
+.fap-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #58a6ff;
+  line-height: 1;
+}
+.fap-stat-danger .fap-stat-value { color: #ff6b6b; }
+.fap-stat-label {
+  font-size: 0.72rem;
+  color: #8b949e;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Error */
+.fap-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff6b6b;
+  padding: 8px 16px;
+  margin: 8px 20px;
+  border-radius: 6px;
+  font-size: 0.84rem;
+}
+.fap-error button {
+  background: none;
+  border: none;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* Tabs */
+.fap-tabs {
+  display: flex;
+  border-bottom: 1px solid #21262d;
+  padding: 0 20px;
+  gap: 4px;
+}
+.fap-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #8b949e;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.fap-tab:hover { color: #e6edf3; }
+.fap-tab.active {
+  color: #58a6ff;
+  border-bottom-color: #58a6ff;
+}
+
+/* Content */
+.fap-content { padding: 16px 20px; min-height: 240px; }
+
+/* Captures grid */
+.fap-captures-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.fap-capture-card {
+  background: rgba(33, 38, 45, 0.7);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.fap-capture-card:hover { transform: translateY(-3px); border-color: #58a6ff; }
+.fap-capture-img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  display: block;
+}
+.fap-capture-placeholder {
+  width: 100%;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  background: rgba(88, 166, 255, 0.06);
+}
+.fap-capture-meta {
+  padding: 8px;
+  font-size: 0.72rem;
+  color: #8b949e;
+}
+.fap-capture-id { font-weight: 600; color: #e6edf3; margin-bottom: 2px; }
+.fap-unknown { color: #8b949e; font-style: italic; }
+.fap-capture-time { color: #6e7681; font-size: 0.68rem; }
+.fap-capture-camera { margin-top: 2px; }
+
+/* Table */
+.fap-table-container { overflow-x: auto; }
+.fap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+.fap-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: #8b949e;
+  font-weight: 500;
+  border-bottom: 1px solid #21262d;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fap-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #21262d;
+  color: #e6edf3;
+}
+.fap-table tr:last-child td { border-bottom: none; }
+.fap-table tbody tr:hover { background: rgba(88, 166, 255, 0.04); }
+.fap-row-danger { background: rgba(255, 68, 68, 0.06) !important; }
+
+/* Badge */
+.face-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Watchlist */
+.fap-watchlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+.fap-add-btn {
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  color: #58a6ff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all 0.2s;
+}
+.fap-add-btn:hover { background: rgba(88, 166, 255, 0.2); }
+
+.fap-wl-form {
+  background: rgba(33, 38, 45, 0.8);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fap-wl-list { display: flex; flex-direction: column; gap: 10px; }
+.fap-wl-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(33, 38, 45, 0.6);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: border-color 0.2s;
+}
+.fap-wl-card:hover { border-color: #ff8800; }
+.fap-wl-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff4444, #ff8800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.fap-wl-info { flex: 1; }
+.fap-wl-name { font-weight: 600; color: #e6edf3; }
+.fap-wl-alias { font-size: 0.78rem; color: #8b949e; margin-bottom: 4px; }
+.fap-wl-notes { font-size: 0.78rem; color: #8b949e; margin-top: 4px; font-style: italic; }
+.fap-wl-remove {
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff6b6b;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.fap-wl-remove:hover { background: rgba(255, 68, 68, 0.2); }
+
+/* Register form */
+.fap-register-form {
+  max-width: 480px;
+}
+.fap-register-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e6edf3;
+  margin: 0 0 8px;
+}
+.fap-register-hint {
+  font-size: 0.82rem;
+  color: #8b949e;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.fap-register-fields { display: flex; flex-direction: column; gap: 12px; }
+.fap-label { font-size: 0.82rem; color: #8b949e; font-weight: 500; }
+.fap-input {
+  background: rgba(33, 38, 45, 0.8);
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+.fap-input:focus { outline: none; border-color: #58a6ff; }
+.fap-textarea { min-height: 72px; resize: vertical; }
+.fap-submit-btn {
+  background: linear-gradient(135deg, #1f6feb, #388bfd);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  width: 100%;
+}
+.fap-submit-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.fap-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.fap-register-btn {
+  background: linear-gradient(135deg, #1a7f37, #2ea043);
+  margin-top: 8px;
+}
+
+/* Empty state */
+.fap-empty {
+  text-align: center;
+  color: #6e7681;
+  padding: 40px 20px;
+  font-size: 0.9rem;
+  grid-column: 1 / -1;
+}
