@@ -31,10 +31,9 @@ MMPROJ_PATH = os.getenv(
     os.path.join(_DEFAULT_GEMMA_DIR, "mmproj-gemma-4-E4B-it-BF16.gguf"),
 )
 
-# Compact, security-focused prompts. Layer 2 supplies geometry/temporal evidence; the VLM is
-# a verifier, not the source of truth for line crossing, speed, dwell time, or identity.
+# Layer 2 owns geometry and temporal facts. The VLM verifies visible context only.
 RULE_PROMPTS = {
-    1: ("Appearance Search", "Describe visible appearance features only. Do not claim identity unless the supplied evidence explicitly contains an identity match."),
+    1: ("Appearance Search", "Describe visible appearance features only. Do not claim identity unless supplied evidence explicitly contains an identity match."),
     2: ("Camera Tamper", "Check for obstruction, severe blur, darkness/overexposure, or a clearly displaced camera view."),
     3: ("Chain/Handbag Snatching", "Look for visible grabbing/pulling of a carried item plus victim reaction. Do not infer theft from proximity alone."),
     4: ("Crowd Detection", "Describe visible crowd density and agitation. Use the supplied numeric person count as authoritative."),
@@ -44,7 +43,7 @@ RULE_PROMPTS = {
     8: ("Gesture Detection", "Describe visible hand/body gestures and whether they resemble a distress or aggressive signal."),
     9: ("Graffiti/Vandalism", "Look for observable property damage, marking, breaking, kicking, or tool use."),
     10: ("Intrusion", "Verify visible presence and behavior; treat configured zone membership from Layer 2 as authoritative."),
-    11: ("Boundary Crossing", "Describe the person's visible motion/context; treat geometric line-crossing evidence from Layer 2 as authoritative."),
+    11: ("Boundary Crossing", "Describe visible motion/context; treat geometric line-crossing evidence from Layer 2 as authoritative."),
     12: ("Loitering", "Describe behavior consistent with waiting/pacing; treat Layer 2 dwell duration as authoritative."),
     13: ("Mobile Snatching", "Look for a visible phone grab plus immediate separation/escape behavior. Do not infer theft from hand proximity alone."),
     14: ("Object Classification", "Describe visible objects and scene context. Never invent objects that are not visible."),
@@ -100,7 +99,7 @@ def _detect_gpu_layers() -> int:
 
 
 class GemmaEngine:
-    """Local multimodal Gemma/GGUF verifier with fail-closed production behavior."""
+    """Local multimodal Gemma 4/GGUF verifier with fail-closed behavior."""
 
     _instance = None
 
@@ -153,14 +152,19 @@ class GemmaEngine:
 
     def _load_model(self, n_gpu_layers: int):
         from llama_cpp import Llama
-        from llama_cpp.llama_chat_format import Llava15ChatHandler
+        try:
+            from llama_cpp.llama_chat_format import Gemma4ChatHandler
+        except ImportError as exc:
+            raise RuntimeError(
+                "Gemma 4 vision requires llama-cpp-python>=0.3.25 with Gemma4ChatHandler support"
+            ) from exc
 
         def build(gpu_layers: int):
-            handler = Llava15ChatHandler(clip_model_path=MMPROJ_PATH)
+            handler = Gemma4ChatHandler(clip_model_path=MMPROJ_PATH)
             model = Llama(
                 model_path=MODEL_PATH,
                 chat_handler=handler,
-                n_ctx=max(1024, int(os.getenv("VMS_GEMMA_CONTEXT", "2048"))),
+                n_ctx=max(1024, int(os.getenv("VMS_GEMMA_CONTEXT", "4096"))),
                 n_gpu_layers=gpu_layers,
                 n_threads=max(1, int(os.getenv("VMS_GEMMA_THREADS", str(os.cpu_count() or 8)))),
                 verbose=False,
@@ -169,14 +173,14 @@ class GemmaEngine:
 
         try:
             self.llm, self.chat_handler = build(n_gpu_layers)
-            logger.info("Gemma VLM initialized with n_gpu_layers=%s", n_gpu_layers)
+            logger.info("Gemma 4 VLM initialized with n_gpu_layers=%s", n_gpu_layers)
         except Exception as first_error:
             if n_gpu_layers == 0:
                 raise
             logger.warning("Gemma GPU load failed; retrying on CPU: %s", first_error)
             self._gpu_layers = 0
             self.llm, self.chat_handler = build(0)
-            logger.info("Gemma VLM initialized with CPU fallback")
+            logger.info("Gemma 4 VLM initialized with CPU fallback")
 
     def analyze_scene(self, frame: np.ndarray, stream_id: str):
         return self.analyze_behavior(
@@ -203,7 +207,7 @@ class GemmaEngine:
             )
             return _unavailable_result(reason)
 
-        # Only one llama.cpp vision request at a time. Do not queue old CCTV frames behind newer frames.
+        # Do not queue stale CCTV frames behind an already-running vision request.
         if not self._inference_lock.acquire(blocking=False):
             return {
                 "event_validated": False,
@@ -216,7 +220,9 @@ class GemmaEngine:
             }
 
         try:
-            future = self._inference_pool.submit(self._do_inference, frame.copy(), dict(event_context or {}))
+            future = self._inference_pool.submit(
+                self._do_inference, frame.copy(), dict(event_context or {})
+            )
             try:
                 result = future.result(timeout=self.timeout_seconds)
                 result.setdefault("available", True)
@@ -253,7 +259,11 @@ class GemmaEngine:
         max_width = max(320, int(os.getenv("VMS_GEMMA_MAX_WIDTH", "1024")))
         if w > max_width:
             scale = max_width / float(w)
-            frame = cv2.resize(frame, (max_width, max(1, int(h * scale))), interpolation=cv2.INTER_AREA)
+            frame = cv2.resize(
+                frame,
+                (max_width, max(1, int(h * scale))),
+                interpolation=cv2.INTER_AREA,
+            )
 
         jpeg_quality = max(35, min(95, int(os.getenv("VMS_GEMMA_JPEG_QUALITY", "70"))))
         ok, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
@@ -264,10 +274,11 @@ class GemmaEngine:
         rule_id = int(event_context.get("id", 14) or 14)
         rule_name, focus = RULE_PROMPTS.get(
             rule_id,
-            ("Security Event", "Verify only the observable evidence in the frame; do not invent missing facts."),
+            ("Security Event", "Verify only observable evidence in the frame; do not invent missing facts."),
         )
         layer2_message = str(event_context.get("message", "No Layer 2 context provided"))
         layer2_severity = str(event_context.get("severity", "unknown"))
+
         rag_context = ""
         if security_rag is not None:
             try:
@@ -305,6 +316,7 @@ Return ONLY one JSON object with exactly these fields:
                     ],
                 }
             ],
+            response_format={"type": "json_object"},
             max_tokens=256,
             temperature=0.0,
         )
