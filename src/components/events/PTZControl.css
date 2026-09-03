@@ -1,0 +1,132 @@
+.ptz-page {
+  padding: 24px 28px 36px;
+  color: #0f172a;
+  min-height: 100%;
+}
+
+.ptz-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.ptz-header h2 { margin: 0 0 6px; font-size: 1.45rem; }
+.ptz-header p { margin: 0; color: #64748b; max-width: 760px; line-height: 1.5; font-size: .86rem; }
+
+.ptz-status {
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+  white-space: nowrap;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  background: #f8fafc;
+}
+.ptz-status.ready { color: #047857; border-color: #6ee7b7; background: #ecfdf5; }
+.ptz-status.error { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+.ptz-status.running { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
+
+.ptz-workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.ptz-step {
+  padding: 13px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  min-height: 88px;
+}
+.ptz-step strong { display: block; color: #1e3a8a; font-size: .78rem; margin-bottom: 6px; }
+.ptz-step span { color: #64748b; font-size: .73rem; line-height: 1.4; }
+
+.ptz-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, .9fr) minmax(420px, 1.5fr);
+  gap: 16px;
+}
+.ptz-card {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, .04);
+}
+.ptz-card h3 { margin: 0 0 14px; font-size: .95rem; }
+.ptz-card-note { color: #64748b; font-size: .75rem; line-height: 1.5; margin: -6px 0 14px; }
+
+.ptz-field { margin-bottom: 14px; }
+.ptz-field label { display: block; font-size: .71rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 800; color: #475569; margin-bottom: 6px; }
+.ptz-field input, .ptz-field select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 9px;
+  padding: 10px 11px;
+  font: inherit;
+  font-size: .8rem;
+}
+.ptz-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ptz-check { display: flex; align-items: center; gap: 8px; color: #334155; font-size: .8rem; margin: 9px 0; }
+.ptz-check input { width: auto; }
+
+.ptz-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+.ptz-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  border-radius: 9px;
+  padding: 9px 13px;
+  font-size: .77rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.ptz-btn.primary { background: #1e3a8a; border-color: #1e3a8a; color: #fff; }
+.ptz-btn.success { background: #047857; border-color: #047857; color: #fff; }
+.ptz-btn.danger { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+.ptz-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.ptz-message { margin: 12px 0; padding: 10px 12px; border-radius: 9px; font-size: .76rem; line-height: 1.45; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.ptz-message.error { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.ptz-message.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+
+.ptz-preset-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+.ptz-preset-row {
+  display: grid;
+  grid-template-columns: auto 1fr 105px;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 11px;
+  background: #f8fafc;
+}
+.ptz-preset-row.active { border-color: #93c5fd; background: #eff6ff; }
+.ptz-preset-name { font-size: .8rem; font-weight: 700; }
+.ptz-preset-token { display: block; color: #94a3b8; font-size: .65rem; margin-top: 2px; }
+.ptz-preset-row input[type="number"] { width: 100%; padding: 7px; border: 1px solid #cbd5e1; border-radius: 7px; }
+
+.ptz-explainer {
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  margin-top: 14px;
+}
+.ptz-explainer strong { display: block; font-size: .78rem; margin-bottom: 6px; }
+.ptz-explainer p { margin: 0; color: #64748b; font-size: .73rem; line-height: 1.55; }
+
+.ptz-test-pad { display: grid; grid-template-columns: repeat(3, 48px); gap: 6px; justify-content: center; margin: 16px auto 4px; }
+.ptz-test-pad button { height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; cursor: pointer; font-weight: 800; color: #1e3a8a; }
+.ptz-test-pad .center { background: #1e3a8a; color: #fff; }
+
+@media (max-width: 1000px) {
+  .ptz-workflow { grid-template-columns: 1fr 1fr; }
+  .ptz-grid { grid-template-columns: 1fr; }
+}
