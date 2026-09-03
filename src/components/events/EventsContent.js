@@ -1,40 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './EventsContent.css';
 import DetectionRuleSet from './DetectionRuleSet';
 import EventStatistics from './EventStatistics';
 import RulesOnCamera from './RulesOnCamera';
-import AppearanceSearch from './AppearanceSearch';
-import VehicleData from './VehicleData';
 import CurrentEvents from './CurrentEvents';
 import SearchEvents from './SearchEvents';
-import LiveAIAlerts from './LiveAIAlerts';
+import PTZAutoTour from './PTZAutoTour';
+import PTZAutoTrack from './PTZAutoTrack';
 import { useUserStore } from '../../store/userStore';
 
 function EventsContent({ selectedMenu }) {
   const [activeContent, setActiveContent] = useState('current-events');
   const currentUser = useUserStore(state => state.currentUser);
-
-  // Check if user is SuperAdmin
   const isSuperAdmin = currentUser && currentUser.role === 'SuperAdmin';
 
   useEffect(() => {
-    // Update active content based on selected menu
-    if (selectedMenu === 'detection-rule-set') {
-      if (isSuperAdmin) {
-        setActiveContent('detection-rule-set');
-      } else {
-        setActiveContent('search-events');
-      }
-    } else if (selectedMenu === 'events-statistics') {
-      setActiveContent('events-statistics');
-    } else if (selectedMenu === 'rules-on-camera') {
-      setActiveContent('rules-on-camera');
-    } else if (selectedMenu === 'search-events') {
+    const known = new Set([
+      'detection-rule-set',
+      'events-statistics',
+      'rules-on-camera',
+      'search-events',
+      'current-events',
+      'ptz-auto-tour',
+      'ptz-auto-track'
+    ]);
+
+    if (selectedMenu === 'detection-rule-set' && !isSuperAdmin) {
       setActiveContent('search-events');
-    } else if (selectedMenu === 'current-events') {
-      setActiveContent('current-events');
+    } else if (known.has(selectedMenu)) {
+      setActiveContent(selectedMenu);
     } else {
-      setActiveContent('current-events'); // Default to current events
+      setActiveContent('current-events');
     }
   }, [selectedMenu, isSuperAdmin]);
 
@@ -51,20 +47,19 @@ function EventsContent({ selectedMenu }) {
         return <EventStatistics />;
       case 'rules-on-camera':
         return <RulesOnCamera />;
+      case 'ptz-auto-tour':
+        return <PTZAutoTour />;
+      case 'ptz-auto-track':
+        return <PTZAutoTrack />;
       case 'search-events':
         return <SearchEvents />;
       case 'current-events':
-        return <CurrentEvents />;
       default:
         return <CurrentEvents />;
     }
   };
 
-  return (
-    <div className="events-content">
-      {renderContent()}
-    </div>
-  );
+  return <div className="events-content">{renderContent()}</div>;
 }
 
-export default EventsContent;
+export default EventsContent;
