@@ -9,9 +9,10 @@ import json
 import logging
 import os
 import re
+import shutil
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -36,15 +37,23 @@ class HardExampleCollector:
             self.high_conf = float(os.getenv("VMS_HARD_EXAMPLE_HIGH_CONF", "0.55"))
             self.min_interval = float(os.getenv("VMS_HARD_EXAMPLE_INTERVAL_SECONDS", "10"))
             self.max_per_day = int(os.getenv("VMS_HARD_EXAMPLE_MAX_PER_DAY", "500"))
+            self.retention_days = int(os.getenv("VMS_HARD_EXAMPLE_RETENTION_DAYS", "30"))
+            self.max_storage_gb = float(os.getenv("VMS_HARD_EXAMPLE_MAX_STORAGE_GB", "20"))
+            self.cleanup_interval = float(os.getenv("VMS_HARD_EXAMPLE_CLEANUP_SECONDS", "3600"))
         except ValueError:
             self.low_conf, self.high_conf, self.min_interval, self.max_per_day = 0.18, 0.55, 10.0, 500
+            self.retention_days, self.max_storage_gb, self.cleanup_interval = 30, 20.0, 3600.0
 
         self.low_conf = max(0.0, min(1.0, self.low_conf))
         self.high_conf = max(self.low_conf, min(1.0, self.high_conf))
         self.min_interval = max(1.0, self.min_interval)
         self.max_per_day = max(1, self.max_per_day)
+        self.retention_days = max(1, self.retention_days)
+        self.max_storage_bytes = max(256 * 1024 * 1024, int(self.max_storage_gb * 1024**3))
+        self.cleanup_interval = max(300.0, self.cleanup_interval)
         self._last_saved = {}
         self._daily_counts = {}
+        self._last_cleanup = 0.0
         self._lock = threading.RLock()
 
     @staticmethod
@@ -77,6 +86,58 @@ class HardExampleCollector:
 
         return False, ""
 
+    def _cleanup_if_due(self, now: float) -> None:
+        with self._lock:
+            if now - self._last_cleanup < self.cleanup_interval:
+                return
+            self._last_cleanup = now
+
+        if not self.root.exists():
+            return
+
+        try:
+            cutoff = datetime.now(timezone.utc).date() - timedelta(days=self.retention_days)
+            for child in self.root.iterdir():
+                if not child.is_dir() or not re.fullmatch(r"\d{8}", child.name):
+                    continue
+                try:
+                    day = datetime.strptime(child.name, "%Y%m%d").date()
+                except ValueError:
+                    continue
+                if day < cutoff:
+                    shutil.rmtree(child, ignore_errors=True)
+
+            files = []
+            total_size = 0
+            for path in self.root.rglob("*"):
+                if not path.is_file():
+                    continue
+                try:
+                    stat = path.stat()
+                except OSError:
+                    continue
+                total_size += stat.st_size
+                files.append((stat.st_mtime, stat.st_size, path))
+
+            if total_size > self.max_storage_bytes:
+                for _mtime, size, path in sorted(files, key=lambda item: item[0]):
+                    try:
+                        path.unlink()
+                        total_size -= size
+                    except OSError:
+                        pass
+                    if total_size <= self.max_storage_bytes:
+                        break
+
+            # Remove empty stream/day directories after pruning.
+            for path in sorted((p for p in self.root.rglob("*") if p.is_dir()), reverse=True):
+                try:
+                    path.rmdir()
+                except OSError:
+                    pass
+        except Exception as exc:
+            logger.warning("Hard-example retention cleanup failed: %s", exc)
+
     def consider(self, frame, metadata: dict, stream_id: Optional[str] = None) -> bool:
         if not self.enabled or frame is None or getattr(frame, "size", 0) == 0:
             return False
@@ -86,6 +147,7 @@ class HardExampleCollector:
             return False
 
         now = time.time()
+        self._cleanup_if_due(now)
         day = datetime.now(timezone.utc).strftime("%Y%m%d")
         safe_stream = self._safe_stream_id(stream_id)
         key = f"{day}:{safe_stream}"
@@ -110,7 +172,7 @@ class HardExampleCollector:
                 raise RuntimeError("cv2.imwrite returned False")
 
             sidecar = {
-                "schema_version": 1,
+                "schema_version": 2,
                 "captured_at": datetime.now(timezone.utc).isoformat(),
                 "stream_id": stream_id,
                 "reason": reason,
@@ -124,6 +186,11 @@ class HardExampleCollector:
                 "motion_score": metadata.get("motion_score"),
                 "blur_score": metadata.get("blur_score"),
                 "luminance": metadata.get("luminance"),
+                "tier2_active": metadata.get("tier2_active"),
+                "tier2_backend": metadata.get("tier2_backend"),
+                "tier2_candidate_count": metadata.get("tier2_candidate_count", 0),
+                "tier2_error_count": metadata.get("tier2_error_count", 0),
+                "total_latency_ms": metadata.get("total_latency_ms"),
             }
             with open(json_path, "w", encoding="utf-8") as handle:
                 json.dump(sidecar, handle, indent=2, ensure_ascii=False)
