@@ -1,0 +1,56 @@
+name: VMS Reliability CI
+
+on:
+  push:
+    branches:
+      - main
+      - fix/realtime-detection-reliability-20260903
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vms-reliability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-source-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile backend Python sources
+        run: python -m compileall -q backend
+
+      - name: Run AI reliability source contracts
+        run: python -m unittest -v backend.tests.test_ai_source_contracts
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run frontend tests
+        run: npm test -- --runInBand --passWithNoTests
+        env:
+          CI: 'true'
+
+      - name: Build production frontend
+        run: npm run build

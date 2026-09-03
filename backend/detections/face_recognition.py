@@ -1,8 +1,19 @@
-import logging
+"""Face detection, reviewed identity matching and watchlist alerting.
+
+The detector deliberately fails closed for identity. OpenCV DNN may locate a
+face when the embedding backend is unavailable, but only a real 128-D
+``face_recognition`` embedding may match a registered identity. Unknown people
+are never auto-enrolled and image histograms are never used as identity.
+"""
+
+from __future__ import annotations
+
 import json
+import logging
 import os
+import threading
 import time
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -11,158 +22,161 @@ from .base_detector import BaseDetector
 
 logger = logging.getLogger(__name__)
 
-# Optional dlib-based face_recognition library
 try:
     import face_recognition as fr
     _FR_AVAILABLE = True
 except ImportError:
+    fr = None
     _FR_AVAILABLE = False
-    logger.info(
-        "face_recognition library not installed. "
-        "FaceRecognitionDetector will use OpenCV DNN fallback."
+    logger.warning(
+        "face_recognition is not installed; face identity/watchlist matching is disabled."
     )
 
-# Optional DB service
 try:
     from services.face_db_service import face_db_service as _db
     _DB_AVAILABLE = True
 except ImportError:
-    _DB_AVAILABLE = False
     _db = None
+    _DB_AVAILABLE = False
 
 
 class FaceRecognitionDetector(BaseDetector):
-    """
-    Recognizes known faces against a stored database of 128-D encodings.
+    """Recognise reviewed identities and alert only on real watchlist matches."""
 
-    New in this version:
-      - Criminal / suspect **watchlist** integration via FaceDBService
-      - Every recognition match (known OR unknown) is persisted to SQLite
-      - Operates only when the camera AI toggle is ON
-      - ``auto_register`` mode: unknown faces that pass quality checks can be
-        saved to the gallery for later manual tagging
-      - Kaggle gallery seeding: call ``seed_from_directory(path)`` to bulk-
-        register identities from a folder of labelled images (e.g. LFW format)
-
-    Kaggle Dataset Sourcing Suggestion: LFW (Labeled Faces in the Wild)
-        https://www.kaggle.com/datasets/jessicali9530/lfw-dataset
-
-    Config options:
-        encodings_db_path (str): JSON file storing face encodings.
-                                 Default: "face_db/encodings.json"
-        recognition_tolerance (float): L2 distance threshold. Default: 0.5
-        detection_model (str): "hog" or "cnn". Default: "hog"
-        dnn_confidence_threshold (float): DNN detection floor. Default: 0.6
-        max_faces (int): Max faces per frame. Default: 20
-        auto_register (bool): Auto-save unknown faces for tagging. Default: True
-        alert_on_watchlist (bool): Fire alert when watchlisted person seen.
-                                   Default: True
-    """
-
-    def __init__(self, config: Dict[str, Any] = None):
-        self.encodings_db_path: str = ""
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.encodings_db_path = ""
         self._known_encodings: Dict[str, List[List[float]]] = {}
-        self._known_categories: Dict[str, str] = {}   # name → category
+        self._known_categories: Dict[str, str] = {}
         self.dnn_net = None
         self._use_fr_lib = _FR_AVAILABLE
+        self._lock = threading.RLock()
         super().__init__("face_recognition", config)
 
-    # ------------------------------------------------------------------
-    # Model loading
-    # ------------------------------------------------------------------
-
     def load_model(self) -> None:
-        self.recognition_tolerance = self.config.get("recognition_tolerance", 0.5)
-        self.detection_model = self.config.get("detection_model", "hog")
-        self.dnn_confidence = self.config.get("dnn_confidence_threshold", 0.6)
-        self.max_faces = self.config.get("max_faces", 20)
-        self.auto_register = self.config.get("auto_register", True)
-        self.alert_on_watchlist = self.config.get("alert_on_watchlist", True)
-
-        # --- Encoding database ---
-        self.encodings_db_path = self.config.get(
-            "encodings_db_path", "face_db/encodings.json"
+        self.recognition_tolerance = max(
+            0.1,
+            min(
+                0.9,
+                float(
+                    self.config.get(
+                        "recognition_tolerance",
+                        os.getenv("VMS_FACE_RECOGNITION_TOLERANCE", "0.5"),
+                    )
+                ),
+            ),
         )
-        os.makedirs(os.path.dirname(self.encodings_db_path) or ".", exist_ok=True)
+        self.detection_model = str(self.config.get("detection_model", "hog"))
+        self.dnn_confidence = max(
+            0.1, min(0.99, float(self.config.get("dnn_confidence_threshold", 0.6)))
+        )
+        self.max_faces = max(1, int(self.config.get("max_faces", 20)))
+        self.auto_register = False
+        self.alert_on_watchlist = bool(self.config.get("alert_on_watchlist", True))
+
+        self.encodings_db_path = os.path.abspath(
+            self.config.get(
+                "encodings_db_path",
+                os.path.join(os.path.dirname(__file__), "..", "face_db", "encodings.json"),
+            )
+        )
+        os.makedirs(os.path.dirname(self.encodings_db_path), exist_ok=True)
         self._load_encodings_db()
 
-        # --- Fallback DNN detector ---
         if not self._use_fr_lib:
-            dnn_proto = self.config.get(
-                "dnn_proto_path",
-                os.path.join(os.path.dirname(__file__), "..", "models", "deploy.prototxt"),
+            proto = os.path.abspath(
+                self.config.get(
+                    "dnn_proto_path",
+                    os.path.join(os.path.dirname(__file__), "..", "models", "deploy.prototxt"),
+                )
             )
-            dnn_model = self.config.get(
-                "dnn_model_path",
-                os.path.join(
-                    os.path.dirname(__file__), "..", "models",
-                    "res10_300x300_ssd_iter_140000.caffemodel",
-                ),
+            model = os.path.abspath(
+                self.config.get(
+                    "dnn_model_path",
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "models",
+                        "res10_300x300_ssd_iter_140000.caffemodel",
+                    ),
+                )
             )
             try:
-                if os.path.isfile(dnn_proto) and os.path.isfile(dnn_model):
-                    self.dnn_net = cv2.dnn.readNetFromCaffe(dnn_proto, dnn_model)
-                    logger.info("OpenCV DNN face detector loaded (recognition fallback).")
+                if os.path.isfile(proto) and os.path.isfile(model):
+                    self.dnn_net = cv2.dnn.readNetFromCaffe(proto, model)
+                    logger.info("OpenCV DNN face detector loaded in detection-only mode")
                 else:
-                    logger.warning("DNN model files not found; detection unavailable.")
-            except Exception as e:
-                logger.error(f"Failed to load DNN model: {e}")
+                    logger.warning("OpenCV DNN face detector assets are missing")
+            except Exception as exc:
+                logger.error("Failed to load OpenCV face detector: %s", exc)
+                self.dnn_net = None
 
         logger.info(
-            "FaceRecognitionDetector ready — %d identities registered, "
-            "backend=%s, watchlist_alerts=%s",
+            "FaceRecognitionDetector ready: identities=%d backend=%s auto_register=false",
             len(self._known_encodings),
-            "face_recognition" if self._use_fr_lib else "opencv_dnn",
-            self.alert_on_watchlist,
+            self.backend_name,
         )
 
-    # ------------------------------------------------------------------
-    # Detection & Recognition
-    # ------------------------------------------------------------------
+    @property
+    def backend_name(self) -> str:
+        if self._use_fr_lib:
+            return "face_recognition"
+        if self.dnn_net is not None:
+            return "opencv_dnn_detection_only"
+        return "unavailable"
+
+    @property
+    def recognition_available(self) -> bool:
+        return bool(self._use_fr_lib)
+
+    def health(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "enabled": self.is_enabled,
+            "backend": self.backend_name,
+            "recognition_available": self.recognition_available,
+            "registered_identities": len(self._known_encodings),
+            "watchlist_alerts": self.alert_on_watchlist,
+            "auto_register": False,
+        }
 
     def detect(self, frame: np.ndarray, **kwargs) -> Dict[str, Any]:
-        """
-        Detect and recognise faces in *frame*.
+        if not self.is_enabled or not kwargs.get("camera_toggle_active", True):
+            return self._empty_result("detection_toggle_off")
+        if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
+            return self._empty_result("invalid_frame")
 
-        Kwargs:
-            stream_id (str): Camera / stream identifier.
-            timestamp (float): Frame epoch timestamp.
-            camera_toggle_active (bool): Must be True to run. Default: True.
-            capture_db_ids (list): DB IDs from FaceCaptureDetector to link.
-        """
-        camera_toggle_active = kwargs.get("camera_toggle_active", True)
-        if not self.is_enabled or not camera_toggle_active:
-            return {
-                "triggered": False,
-                "detections": [],
-                "metadata": {"skipped": "detection_toggle_off"},
-                "event_type": self.name,
-            }
+        stream_id = str(kwargs.get("stream_id", kwargs.get("camera_id", "unknown")))
+        timestamp = float(kwargs.get("timestamp", time.time()))
+        capture_db_ids = list(kwargs.get("capture_db_ids", []) or [])
 
-        stream_id = kwargs.get("stream_id", "unknown")
-        timestamp = kwargs.get("timestamp", time.time())
-        capture_db_ids: List[str] = kwargs.get("capture_db_ids", [])
+        try:
+            with self._lock:
+                face_locations, face_encodings = self._encode_faces(frame)
+        except Exception as exc:
+            logger.exception("Face recognition inference failed for %s: %s", stream_id, exc)
+            result = self._empty_result("inference_error")
+            result["metadata"]["error"] = str(exc)
+            return result
 
-        face_locations, face_encodings = self._encode_faces(frame)
         detections: List[Dict[str, Any]] = []
-        recognised_identities: List[str] = []
+        recognised: List[str] = []
         watchlist_hits: List[str] = []
+        best_watchlist_confidence = 0.0
 
-        for idx, (loc, encoding) in enumerate(zip(face_locations, face_encodings)):
+        for idx, loc in enumerate(face_locations):
+            encoding = face_encodings[idx] if idx < len(face_encodings) else None
             identity, distance = self._match_encoding(encoding)
-            confidence = max(0.0, 1.0 - distance) if distance is not None else 0.0
-
-            x1, y1, x2, y2 = loc
+            confidence = self._distance_to_confidence(distance) if identity else 0.0
+            x1, y1, x2, y2 = [int(value) for value in loc]
             category = self._known_categories.get(identity, "person") if identity else "unknown"
             is_watchlisted = False
 
-            if _DB_AVAILABLE and _db is not None and identity:
+            if identity and _DB_AVAILABLE and _db is not None:
                 try:
-                    is_watchlisted = _db.is_watchlisted(identity)
-                except Exception:
-                    pass
+                    is_watchlisted = bool(_db.is_watchlisted(identity))
+                except Exception as exc:
+                    logger.warning("Watchlist lookup failed for '%s': %s", identity, exc)
 
-            # Persist recognition event to DB
             capture_id = capture_db_ids[idx] if idx < len(capture_db_ids) else None
             if _DB_AVAILABLE and _db is not None:
                 try:
@@ -176,10 +190,10 @@ class FaceRecognitionDetector(BaseDetector):
                         is_watchlisted=is_watchlisted,
                         timestamp=timestamp,
                     )
-                except Exception as e:
-                    logger.error("Failed to log recognition event: %s", e)
+                except Exception as exc:
+                    logger.warning("Recognition audit log write failed: %s", exc)
 
-            det = {
+            detection = {
                 "bbox": [x1, y1, x2, y2],
                 "confidence": round(confidence, 4),
                 "label": identity or "unknown",
@@ -187,250 +201,248 @@ class FaceRecognitionDetector(BaseDetector):
                 "distance": round(distance, 4) if distance is not None else None,
                 "matched": identity is not None,
                 "is_watchlisted": is_watchlisted,
+                "identity_backend": self.backend_name,
             }
-            detections.append(det)
+            detections.append(detection)
 
             if identity:
-                recognised_identities.append(identity)
-                if is_watchlisted:
-                    watchlist_hits.append(identity)
+                recognised.append(identity)
+            if is_watchlisted and identity:
+                watchlist_hits.append(identity)
+                best_watchlist_confidence = max(best_watchlist_confidence, confidence)
 
-        # Trigger alert for watchlist hits
-        triggered = len(recognised_identities) > 0 or len(watchlist_hits) > 0
-        alert_triggered = len(watchlist_hits) > 0 and self.alert_on_watchlist
+        alert_triggered = bool(watchlist_hits) and self.alert_on_watchlist
+        if alert_triggered:
+            try:
+                from services.event_dispatcher import dispatch_confirmed_event
+
+                names = ", ".join(sorted(set(watchlist_hits)))
+                dispatch_confirmed_event(
+                    stream_id,
+                    "Face Recognition",
+                    "critical",
+                    f"Watchlist identity matched: {names}",
+                    rule_id=7,
+                    confidence=best_watchlist_confidence,
+                    data={
+                        "watchlist_matches": sorted(set(watchlist_hits)),
+                        "backend": self.backend_name,
+                    },
+                )
+            except Exception as exc:
+                logger.exception("Failed to dispatch watchlist event for %s: %s", stream_id, exc)
 
         return {
-            "triggered": triggered,
+            "triggered": bool(recognised),
             "alert_triggered": alert_triggered,
             "detections": detections,
+            "watchlist_matches": sorted(set(watchlist_hits)),
             "metadata": {
                 "total_faces": len(face_locations),
-                "recognised_count": len(recognised_identities),
-                "recognised_identities": recognised_identities,
+                "recognised_count": len(recognised),
+                "recognised_identities": recognised,
                 "watchlist_hits": watchlist_hits,
                 "stream_id": stream_id,
                 "timestamp": timestamp,
+                "backend": self.backend_name,
+                "recognition_available": self.recognition_available,
+                "auto_register": False,
             },
             "event_type": self.name,
         }
 
-    # ------------------------------------------------------------------
-    # Registration API
-    # ------------------------------------------------------------------
+    def register_face(self, name: str, frame: np.ndarray, category: str = "person") -> Dict[str, Any]:
+        name = str(name or "").strip()
+        if not name:
+            return {"success": False, "message": "Identity name is required."}
+        if not self.recognition_available:
+            return {"success": False, "message": "Face identity backend is unavailable."}
+        if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
+            return {"success": False, "message": "Invalid registration image."}
 
-    def register_face(
-        self, name: str, frame: np.ndarray, category: str = "person"
-    ) -> Dict[str, Any]:
-        """
-        Register a new identity from a frame containing exactly one face.
-
-        Args:
-            name: Human-readable identity label.
-            frame: BGR image containing the face.
-            category: "person", "suspect", "criminal", "staff", etc.
-        """
-        _, encodings = self._encode_faces(frame)
-
-        if len(encodings) == 0:
-            return {"success": False, "message": "No face detected in the provided image."}
-        if len(encodings) > 1:
-            return {
-                "success": False,
-                "message": f"Expected 1 face but found {len(encodings)}. Provide a single-face image.",
-            }
-
-        encoding = encodings[0]
-        self._known_encodings.setdefault(name, []).append(
-            encoding.tolist() if isinstance(encoding, np.ndarray) else encoding
-        )
-        self._known_categories[name] = category
-        self._save_encodings_db()
-        logger.info("Registered face encoding for '%s' (category: %s).", name, category)
+        with self._lock:
+            _, encodings = self._encode_faces_fr(frame)
+            if len(encodings) != 1:
+                return {
+                    "success": False,
+                    "message": f"Expected exactly one face but found {len(encodings)}.",
+                }
+            embedding = np.asarray(encodings[0], dtype=np.float64)
+            if embedding.shape != (128,) or not np.isfinite(embedding).all():
+                return {"success": False, "message": "Face embedding was invalid."}
+            self._known_encodings.setdefault(name, []).append(embedding.tolist())
+            self._known_categories[name] = str(category or "person")
+            self._save_encodings_db()
         return {"success": True, "message": f"Face registered for '{name}' as '{category}'."}
 
     def seed_from_directory(self, directory: str, category: str = "person") -> Dict[str, Any]:
-        """
-        Bulk-register identities from a directory of labelled images.
+        if not self.recognition_available:
+            return {"success": False, "registered": 0, "failed": 0, "message": "Identity backend unavailable."}
+        if not os.path.isdir(directory):
+            return {"success": False, "registered": 0, "failed": 0, "message": f"Directory not found: {directory}"}
 
-        Expected structure (LFW-style):
-          directory/
-            Person_Name/
-              image1.jpg
-              image2.jpg
-
-        Returns summary of how many identities were registered.
-        """
         registered = 0
         failed = 0
-        if not os.path.isdir(directory):
-            return {"success": False, "message": f"Directory not found: {directory}"}
-
         for person_dir in os.scandir(directory):
             if not person_dir.is_dir():
                 continue
-            name = person_dir.name.replace("_", " ")
-            for img_file in os.scandir(person_dir.path):
-                if not img_file.name.lower().endswith((".jpg", ".jpeg", ".png")):
+            identity = person_dir.name.replace("_", " ").strip()
+            enrolled = False
+            for image_file in os.scandir(person_dir.path):
+                if not image_file.name.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
                     continue
-                frame = cv2.imread(img_file.path)
-                if frame is None:
+                image = cv2.imread(image_file.path)
+                if image is None:
                     continue
-                result = self.register_face(name, frame, category=category)
-                if result["success"]:
+                result = self.register_face(identity, image, category=category)
+                if result.get("success"):
                     registered += 1
-                    break  # One image per person is enough for gallery seeding
-                else:
-                    failed += 1
-
-        return {
-            "success": True,
-            "registered": registered,
-            "failed": failed,
-            "message": f"Seeded {registered} identities from {directory}",
-        }
+                    enrolled = True
+                    break
+            if not enrolled:
+                failed += 1
+        return {"success": True, "registered": registered, "failed": failed}
 
     def unregister_face(self, name: str) -> Dict[str, Any]:
-        if name in self._known_encodings:
-            del self._known_encodings[name]
+        with self._lock:
+            if name not in self._known_encodings:
+                return {"success": False, "message": f"Identity '{name}' not found."}
+            self._known_encodings.pop(name, None)
             self._known_categories.pop(name, None)
             self._save_encodings_db()
-            return {"success": True, "message": f"Identity '{name}' removed."}
-        return {"success": False, "message": f"Identity '{name}' not found."}
+        return {"success": True, "message": f"Identity '{name}' removed."}
 
-    def list_identities(self) -> List[Dict[str, str]]:
+    def list_identities(self) -> List[Dict[str, Any]]:
         return [
-            {"name": name, "category": self._known_categories.get(name, "person")}
-            for name in self._known_encodings
+            {
+                "name": name,
+                "category": self._known_categories.get(name, "person"),
+                "samples": len(samples),
+            }
+            for name, samples in sorted(self._known_encodings.items())
         ]
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _encode_faces(self, frame: np.ndarray) -> tuple:
+    def _encode_faces(self, frame: np.ndarray) -> Tuple[List[List[int]], List[Optional[np.ndarray]]]:
         if self._use_fr_lib:
-            return self._encode_faces_fr(frame)
-        return self._encode_faces_fallback(frame)
+            locations, encodings = self._encode_faces_fr(frame)
+            return locations, list(encodings)
+        return self._detect_faces_dnn(frame), []
 
-    def _encode_faces_fr(self, frame: np.ndarray) -> tuple:
+    def _encode_faces_fr(self, frame: np.ndarray) -> Tuple[List[List[int]], List[np.ndarray]]:
+        if not self._use_fr_lib or fr is None:
+            return [], []
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        locations = fr.face_locations(rgb, model=self.detection_model)
-        encodings = fr.face_encodings(rgb, locations)
-        locs_xyxy = []
-        for top, right, bottom, left in locations[: self.max_faces]:
-            locs_xyxy.append([left, top, right, bottom])
-        return locs_xyxy, list(encodings[: self.max_faces])
+        raw_locations = fr.face_locations(rgb, model=self.detection_model)[: self.max_faces]
+        raw_encodings = fr.face_encodings(rgb, raw_locations)
+        locations = [[left, top, right, bottom] for top, right, bottom, left in raw_locations]
+        return locations, list(raw_encodings[: self.max_faces])
 
-    def _encode_faces_fallback(self, frame: np.ndarray) -> tuple:
-        locations: List[List[int]] = []
-        encodings: List[List[float]] = []
+    def _detect_faces_dnn(self, frame: np.ndarray) -> List[List[int]]:
         if self.dnn_net is None:
-            return locations, encodings
-
-        h_frame, w_frame = frame.shape[:2]
+            return []
+        height, width = frame.shape[:2]
         blob = cv2.dnn.blobFromImage(
             cv2.resize(frame, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0)
         )
         self.dnn_net.setInput(blob)
-        dets = self.dnn_net.forward()
-
-        for i in range(min(dets.shape[2], self.max_faces)):
-            conf = float(dets[0, 0, i, 2])
-            if conf < self.dnn_confidence:
+        output = self.dnn_net.forward()
+        locations: List[List[int]] = []
+        for idx in range(output.shape[2]):
+            confidence = float(output[0, 0, idx, 2])
+            if confidence < self.dnn_confidence:
                 continue
-            box = dets[0, 0, i, 3:7] * np.array([w_frame, h_frame, w_frame, h_frame])
-            x1, y1, x2, y2 = np.clip(
-                box.astype(int), 0, [w_frame, h_frame, w_frame, h_frame]
-            )
-            locations.append([int(x1), int(y1), int(x2), int(y2)])
-            face_roi = frame[y1:y2, x1:x2]
-            if face_roi.size == 0:
-                encodings.append([0.0] * 128)
-                continue
-            enc = self._histogram_encoding(face_roi)
-            encodings.append(enc)
+            x1, y1, x2, y2 = (
+                output[0, 0, idx, 3:7] * np.array([width, height, width, height])
+            ).astype(int)
+            x1 = max(0, min(width - 1, x1))
+            y1 = max(0, min(height - 1, y1))
+            x2 = max(x1 + 1, min(width, x2))
+            y2 = max(y1 + 1, min(height, y2))
+            locations.append([x1, y1, x2, y2])
+            if len(locations) >= self.max_faces:
+                break
+        return locations
 
-        return locations, encodings
-
-    @staticmethod
-    def _histogram_encoding(face_roi: np.ndarray, dims: int = 128) -> List[float]:
-        hsv = cv2.cvtColor(face_roi, cv2.COLOR_BGR2HSV)
-        hist = cv2.calcHist([hsv], [0, 1], None, [16, 8], [0, 180, 0, 256])
-        hist = cv2.normalize(hist, hist).flatten()
-        if len(hist) < dims:
-            hist = np.pad(hist, (0, dims - len(hist)))
-        else:
-            hist = hist[:dims]
-        return hist.tolist()
-
-    def _match_encoding(self, encoding) -> tuple:
-        if not self._known_encodings:
+    def _match_encoding(self, encoding: Optional[Sequence[float]]) -> Tuple[Optional[str], Optional[float]]:
+        if encoding is None or not self.recognition_available or fr is None:
+            return None, None
+        probe = np.asarray(encoding, dtype=np.float64)
+        if probe.shape != (128,) or not np.isfinite(probe).all():
             return None, None
 
-        enc_arr = np.array(encoding)
         best_name: Optional[str] = None
-        best_dist: float = float("inf")
+        best_distance = float("inf")
+        for name, known_list in self._known_encodings.items():
+            valid = []
+            for item in known_list:
+                sample = np.asarray(item, dtype=np.float64)
+                if sample.shape == (128,) and np.isfinite(sample).all():
+                    valid.append(sample)
+            if not valid:
+                continue
+            distance = float(np.min(fr.face_distance(valid, probe)))
+            if distance < best_distance:
+                best_name, best_distance = name, distance
+        if best_name is not None and best_distance <= self.recognition_tolerance:
+            return best_name, best_distance
+        return None, best_distance if np.isfinite(best_distance) else None
 
-        if self._use_fr_lib:
-            for name, known_list in self._known_encodings.items():
-                known_arrs = [np.array(k) for k in known_list]
-                distances = fr.face_distance(known_arrs, enc_arr)
-                min_d = float(np.min(distances))
-                if min_d < best_dist:
-                    best_dist = min_d
-                    best_name = name
-        else:
-            for name, known_list in self._known_encodings.items():
-                for known in known_list:
-                    dist = float(np.linalg.norm(enc_arr - np.array(known)))
-                    if dist < best_dist:
-                        best_dist = dist
-                        best_name = name
-
-        if best_dist <= self.recognition_tolerance:
-            return best_name, best_dist
-        return None, best_dist
-
-    # ------------------------------------------------------------------
-    # Persistence
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _distance_to_confidence(distance: Optional[float]) -> float:
+        if distance is None:
+            return 0.0
+        return max(0.0, min(1.0, 1.0 - float(distance)))
 
     def _load_encodings_db(self) -> None:
-        if os.path.isfile(self.encodings_db_path):
-            try:
-                with open(self.encodings_db_path, "r", encoding="utf-8") as fh:
-                    data = json.load(fh)
-                # Support both flat {name: [encodings]} and new {encodings:{}, categories:{}}
-                if isinstance(data, dict) and "encodings" in data:
-                    self._known_encodings = data["encodings"]
-                    self._known_categories = data.get("categories", {})
-                else:
-                    self._known_encodings = data
-                    self._known_categories = {}
-                logger.info(
-                    "Loaded %d identities from %s.",
-                    len(self._known_encodings),
-                    self.encodings_db_path,
-                )
-            except Exception as e:
-                logger.error(f"Failed to load encodings database: {e}")
-                self._known_encodings = {}
-                self._known_categories = {}
-        else:
-            self._known_encodings = {}
-            self._known_categories = {}
+        self._known_encodings = {}
+        self._known_categories = {}
+        if not os.path.isfile(self.encodings_db_path):
+            return
+        try:
+            with open(self.encodings_db_path, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            encodings = data.get("encodings", data) if isinstance(data, dict) else {}
+            categories = data.get("categories", {}) if isinstance(data, dict) else {}
+            cleaned: Dict[str, List[List[float]]] = {}
+            for name, samples in encodings.items() if isinstance(encodings, dict) else []:
+                valid_samples: List[List[float]] = []
+                for sample in samples if isinstance(samples, list) else []:
+                    array = np.asarray(sample, dtype=np.float64)
+                    if array.shape == (128,) and np.isfinite(array).all():
+                        valid_samples.append(array.tolist())
+                if valid_samples:
+                    cleaned[str(name)] = valid_samples
+            self._known_encodings = cleaned
+            self._known_categories = categories if isinstance(categories, dict) else {}
+        except Exception as exc:
+            logger.error("Failed to load face encodings database: %s", exc)
 
     def _save_encodings_db(self) -> None:
+        temporary = f"{self.encodings_db_path}.tmp"
+        payload = {"encodings": self._known_encodings, "categories": self._known_categories}
         try:
-            with open(self.encodings_db_path, "w", encoding="utf-8") as fh:
-                json.dump(
-                    {
-                        "encodings": self._known_encodings,
-                        "categories": self._known_categories,
-                    },
-                    fh,
-                    indent=2,
-                )
-            logger.debug("Encodings database saved to %s.", self.encodings_db_path)
-        except Exception as e:
-            logger.error(f"Failed to save encodings database: {e}")
+            with open(temporary, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, self.encodings_db_path)
+        finally:
+            if os.path.exists(temporary):
+                try:
+                    os.remove(temporary)
+                except OSError:
+                    pass
+
+    def _empty_result(self, reason: str) -> Dict[str, Any]:
+        return {
+            "triggered": False,
+            "alert_triggered": False,
+            "detections": [],
+            "watchlist_matches": [],
+            "metadata": {
+                "skipped": reason,
+                "backend": self.backend_name,
+                "recognition_available": self.recognition_available,
+            },
+            "event_type": self.name,
+        }
