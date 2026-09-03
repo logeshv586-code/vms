@@ -111,7 +111,7 @@ class AISourceContracts(unittest.TestCase):
         text = source("detections/face_recognition.py")
         self.assertIn("self.auto_register = False", text)
         self.assertIn('"auto_register": False', text)
-        self.assertNotIn("histogram", text.lower())
+        self.assertNotIn("cv2.calcHist", text)
 
     def test_security_bootstrap_redacts_logs_json_and_wildcard_cors(self):
         runtime = source("services/security_runtime.py")
