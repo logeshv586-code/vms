@@ -25,7 +25,6 @@ _DEFAULT_CORS_ORIGINS = (
     "http://localhost:5173",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
-    # Electron/file:// fetches can present a null Origin. Keep it explicit rather than '*'.
     "null",
 )
 
@@ -100,7 +99,6 @@ def get_allowed_origins(extra: Iterable[str] | None = None) -> list[str]:
 
     deduped = []
     for origin in origins:
-        # A wildcard supplied through the environment is intentionally ignored.
         if origin == "*" or origin in deduped:
             continue
         deduped.append(origin)
@@ -108,12 +106,7 @@ def get_allowed_origins(extra: Iterable[str] | None = None) -> list[str]:
 
 
 def install_cors_guard() -> None:
-    """Harden legacy CORSMiddleware registrations that still pass allow_origins=['*'].
-
-    main.py imports the class before the services package is imported, so replacing the module
-    symbol would be too late. Patching the class initializer is deliberate: the already-bound
-    class object is the same object Starlette later instantiates from FastAPI's middleware stack.
-    """
+    """Harden legacy CORSMiddleware registrations that still pass allow_origins=['*']."""
     try:
         from starlette.middleware.cors import CORSMiddleware
     except Exception:
@@ -155,6 +148,26 @@ def install_cors_guard() -> None:
     CORSMiddleware.__init__ = secure_init
 
 
+def install_json_redaction() -> None:
+    """Redact secrets from all Starlette/FastAPI JSON responses before serialization."""
+    try:
+        from starlette.responses import JSONResponse
+    except Exception:
+        return
+
+    current = JSONResponse.render
+    if getattr(current, "_vms_json_redaction", False):
+        return
+
+    original = current
+
+    def secure_render(self, content):
+        return original(self, sanitize_payload(content))
+
+    secure_render._vms_json_redaction = True
+    JSONResponse.render = secure_render
+
+
 def install_log_redaction() -> None:
     """Install one process-wide LogRecord factory that redacts credentials before handlers run."""
     current = logging.getLogRecordFactory()
@@ -179,6 +192,7 @@ def install_log_redaction() -> None:
 __all__ = [
     "get_allowed_origins",
     "install_cors_guard",
+    "install_json_redaction",
     "install_log_redaction",
     "redact_url",
     "sanitize_payload",
