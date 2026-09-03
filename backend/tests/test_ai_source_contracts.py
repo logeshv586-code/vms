@@ -34,6 +34,8 @@ class AISourceContracts(unittest.TestCase):
             "services/hard_example_collector.py",
             "services/pattern_engine.py",
             "services/security_runtime.py",
+            "routes/camera_rules.py",
+            "routes/ptz.py",
             "tools/validate_runtime.py",
             "training/train_yolo.py",
             "training/calibrate_face_threshold.py",
@@ -143,6 +145,50 @@ class AISourceContracts(unittest.TestCase):
         self.assertIn("export const fetchEventRules", canonical)
         self.assertIn("from './eventService'", shim)
         self.assertNotIn("apiRequest", shim)
+
+    def test_detection_rule_ui_uses_effective_camera_mapping(self):
+        helpers = root_source("src/utils/detectionRules.js")
+        live = root_source("src/components/events/CurrentEvents.js")
+        search = root_source("src/components/events/SearchEvents.js")
+        camera_table = root_source("src/components/events/CameraRuleTable.js")
+        self.assertEqual(helpers.count("{ id:"), 23)
+        self.assertIn("getRulesForCamera", helpers)
+        self.assertIn("eventMatchesCamera", helpers)
+        self.assertIn("getRulesForCamera", live)
+        self.assertIn("eventMatchesCamera", live)
+        self.assertIn("Date Range", search)
+        self.assertIn("eventMatchesCamera", search)
+        self.assertIn("camera-rule-state", camera_table)
+        self.assertIn("onCameraSelect(camera.id)", camera_table)
+
+    def test_camera_rule_writes_are_atomic_and_alias_aware(self):
+        text = source("routes/camera_rules.py")
+        self.assertIn("_CAMERA_RULES_LOCK", text)
+        self.assertIn("os.replace", text)
+        self.assertIn("_expanded_camera_rules", text)
+        self.assertIn("globalEnabledRuleIds", text)
+        self.assertIn("router.include_router(ptz_router)", text)
+
+    def test_ptz_is_real_onvif_probe_and_fail_closed(self):
+        text = source("routes/ptz.py")
+        self.assertIn("ONVIFCamera", text)
+        self.assertIn("create_ptz_service", text)
+        self.assertIn("GetPresets", text)
+        self.assertIn("GotoPreset", text)
+        self.assertIn("ContinuousMove", text)
+        self.assertIn('"verified": False', text)
+        self.assertIn("credentials", text.lower())
+        self.assertNotIn('"password": camera_meta', text)
+
+    def test_ptz_menu_no_longer_falls_back_to_current_events(self):
+        content = root_source("src/components/events/EventsContent.js")
+        tour = root_source("src/components/events/PTZAutoTour.js")
+        track = root_source("src/components/events/PTZAutoTrack.js")
+        self.assertIn("case 'ptz-auto-tour'", content)
+        self.assertIn("case 'ptz-auto-track'", content)
+        self.assertIn("Test PTZ & Load Presets", tour)
+        self.assertIn("Save & Arm Controller", track)
+        self.assertIn("target handoff", track.lower())
 
     def test_training_refuses_raw_review_queue(self):
         text = source("training/train_yolo.py")
