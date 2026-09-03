@@ -1,7 +1,9 @@
 """Runtime security helpers for the local VMS backend.
 
 The VMS commonly handles credential-bearing RTSP URLs. These helpers keep credentials out of
-logs and API payloads while preserving enough host/path information for diagnostics.
+logs and API payloads while preserving enough host/path information for diagnostics. The module
+also hardens the legacy FastAPI bootstrap by replacing wildcard CORS origins with an explicit
+local/UI allow-list without requiring every existing entry point to duplicate the policy.
 """
 
 from __future__ import annotations
@@ -96,13 +98,61 @@ def get_allowed_origins(extra: Iterable[str] | None = None) -> list[str]:
     if extra:
         origins.extend(str(item).strip() for item in extra if str(item).strip())
 
-    # Wildcard is intentionally rejected; users must name trusted origins explicitly.
     deduped = []
     for origin in origins:
+        # A wildcard supplied through the environment is intentionally ignored.
         if origin == "*" or origin in deduped:
             continue
         deduped.append(origin)
     return deduped
+
+
+def install_cors_guard() -> None:
+    """Harden legacy CORSMiddleware registrations that still pass allow_origins=['*'].
+
+    main.py imports the class before the services package is imported, so replacing the module
+    symbol would be too late. Patching the class initializer is deliberate: the already-bound
+    class object is the same object Starlette later instantiates from FastAPI's middleware stack.
+    """
+    try:
+        from starlette.middleware.cors import CORSMiddleware
+    except Exception:
+        return
+
+    current = CORSMiddleware.__init__
+    if getattr(current, "_vms_cors_guard", False):
+        return
+
+    original = current
+
+    def secure_init(
+        self,
+        app,
+        allow_origins=(),
+        allow_methods=("GET",),
+        allow_headers=(),
+        allow_credentials=False,
+        allow_origin_regex=None,
+        expose_headers=(),
+        max_age=600,
+    ):
+        origins = list(allow_origins or [])
+        if "*" in origins:
+            origins = get_allowed_origins()
+        return original(
+            self,
+            app,
+            allow_origins=origins,
+            allow_methods=allow_methods,
+            allow_headers=allow_headers,
+            allow_credentials=allow_credentials,
+            allow_origin_regex=allow_origin_regex,
+            expose_headers=expose_headers,
+            max_age=max_age,
+        )
+
+    secure_init._vms_cors_guard = True
+    CORSMiddleware.__init__ = secure_init
 
 
 def install_log_redaction() -> None:
@@ -128,6 +178,7 @@ def install_log_redaction() -> None:
 
 __all__ = [
     "get_allowed_origins",
+    "install_cors_guard",
     "install_log_redaction",
     "redact_url",
     "sanitize_payload",
