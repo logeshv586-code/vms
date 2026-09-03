@@ -1,26 +1,27 @@
+from __future__ import annotations
+
+import json
+import logging
+import os
+import tempfile
+import threading
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import json
-import os
-import logging
-from typing import List, Optional
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Get the workspace root directory
 WORKSPACE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 ANALYTICS_CONFIG_PATH = os.path.join(WORKSPACE_ROOT, "analytics_configuration.json")
-
-# Create router
+_CONFIG_LOCK = threading.RLock()
 router = APIRouter(prefix="/api/augment", tags=["analytics"])
 
-# Define models
+
 class AnalyticsServer(BaseModel):
     id: Optional[int] = None
     ip: str
     name: str
+
 
 class AnalyticsResponse(BaseModel):
     success: bool
@@ -28,157 +29,136 @@ class AnalyticsResponse(BaseModel):
     message: Optional[str] = None
     error: Optional[str] = None
 
-# Helper function to load analytics configuration
-def load_analytics_config():
-    try:
-        if not os.path.exists(ANALYTICS_CONFIG_PATH):
-            # Create default configuration if it doesn't exist
-            default_config = {
-                "servers": []
-            }
-            with open(ANALYTICS_CONFIG_PATH, "w") as f:
-                json.dump(default_config, f, indent=2)
-            return default_config
 
-        with open(ANALYTICS_CONFIG_PATH, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading analytics configuration: {str(e)}")
-        return {"servers": []}
+def _atomic_save(path: str, payload: Dict[str, Any]) -> None:
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=directory, encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+        temporary = handle.name
+    os.replace(temporary, path)
 
-# Helper function to save analytics configuration
-def save_analytics_config(config):
-    try:
-        with open(ANALYTICS_CONFIG_PATH, "w") as f:
-            json.dump(config, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving analytics configuration: {str(e)}")
-        return False
 
-# Get all servers
+def load_analytics_config() -> Dict[str, Any]:
+    with _CONFIG_LOCK:
+        try:
+            if not os.path.exists(ANALYTICS_CONFIG_PATH):
+                default_config = {"servers": []}
+                _atomic_save(ANALYTICS_CONFIG_PATH, default_config)
+                return default_config
+            with open(ANALYTICS_CONFIG_PATH, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            if not isinstance(data, dict):
+                raise ValueError("analytics configuration must be a JSON object")
+            data.setdefault("servers", [])
+            return data
+        except Exception as exc:
+            logger.error("Error loading analytics configuration: %s", exc)
+            return {"servers": []}
+
+
+def save_analytics_config(config: Dict[str, Any]) -> bool:
+    with _CONFIG_LOCK:
+        try:
+            _atomic_save(ANALYTICS_CONFIG_PATH, config)
+            return True
+        except Exception as exc:
+            logger.error("Error saving analytics configuration: %s", exc)
+            return False
+
+
 @router.get("/servers")
 async def get_servers():
-    try:
-        config = load_analytics_config()
-        return {
-            "success": True,
-            "data": config["servers"],
-            "message": "Servers retrieved successfully"
-        }
-    except Exception as e:
-        logger.error(f"Error getting servers: {str(e)}")
-        return {
-            "success": False,
-            "error": f"Failed to retrieve servers: {str(e)}"
-        }
+    config = load_analytics_config()
+    return {"success": True, "data": config["servers"], "message": "Servers retrieved successfully"}
 
-# Add a new server
+
 @router.post("/servers")
 async def add_server(server: AnalyticsServer):
-    try:
-        config = load_analytics_config()
-        servers = config["servers"]
+    config = load_analytics_config()
+    servers = config["servers"]
+    new_id = max((int(item.get("id", 0)) for item in servers if isinstance(item, dict)), default=0) + 1
+    new_server = {"id": new_id, "ip": server.ip, "name": server.name}
+    servers.append(new_server)
+    if not save_analytics_config(config):
+        raise HTTPException(status_code=500, detail="Failed to save analytics configuration")
+    return {"success": True, "data": new_server, "message": "Server added successfully"}
 
-        # Generate new ID
-        new_id = 1
-        if servers:
-            new_id = max(server["id"] for server in servers) + 1
 
-        # Create new server
-        new_server = {
-            "id": new_id,
-            "ip": server.ip,
-            "name": server.name
-        }
-
-        # Add to list
-        servers.append(new_server)
-
-        # Save configuration
-        if save_analytics_config(config):
-            return {
-                "success": True,
-                "data": new_server,
-                "message": "Server added successfully"
-            }
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save configuration")
-    except Exception as e:
-        logger.error(f"Error adding server: {str(e)}")
-        return {
-            "success": False,
-            "error": f"Failed to add server: {str(e)}"
-        }
-
-# Update a server
 @router.put("/servers/{server_id}")
 async def update_server(server_id: int, server: AnalyticsServer):
-    try:
-        config = load_analytics_config()
-        servers = config["servers"]
+    config = load_analytics_config()
+    servers = config["servers"]
+    index = next((idx for idx, item in enumerate(servers) if item.get("id") == server_id), None)
+    if index is None:
+        raise HTTPException(status_code=404, detail=f"Server with ID {server_id} not found")
+    servers[index] = {"id": server_id, "ip": server.ip, "name": server.name}
+    if not save_analytics_config(config):
+        raise HTTPException(status_code=500, detail="Failed to save analytics configuration")
+    return {"success": True, "data": servers[index], "message": "Server updated successfully"}
 
-        # Find server by ID
-        server_index = next((i for i, s in enumerate(servers) if s["id"] == server_id), None)
-        if server_index is None:
-            return {
-                "success": False,
-                "error": f"Server with ID {server_id} not found"
-            }
 
-        # Update server
-        servers[server_index] = {
-            "id": server_id,
-            "ip": server.ip,
-            "name": server.name
-        }
-
-        # Save configuration
-        if save_analytics_config(config):
-            return {
-                "success": True,
-                "data": servers[server_index],
-                "message": "Server updated successfully"
-            }
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save configuration")
-    except Exception as e:
-        logger.error(f"Error updating server: {str(e)}")
-        return {
-            "success": False,
-            "error": f"Failed to update server: {str(e)}"
-        }
-
-# Delete a server
 @router.delete("/servers/{server_id}")
 async def delete_server(server_id: int):
+    config = load_analytics_config()
+    servers = config["servers"]
+    index = next((idx for idx, item in enumerate(servers) if item.get("id") == server_id), None)
+    if index is None:
+        raise HTTPException(status_code=404, detail=f"Server with ID {server_id} not found")
+    deleted = servers.pop(index)
+    if not save_analytics_config(config):
+        raise HTTPException(status_code=500, detail="Failed to save analytics configuration")
+    return {"success": True, "data": deleted, "message": "Server deleted successfully"}
+
+
+def _safe_status(name: str, callback) -> Dict[str, Any]:
     try:
-        config = load_analytics_config()
-        servers = config["servers"]
+        value = callback()
+        return value if isinstance(value, dict) else {"available": True, "value": value}
+    except Exception as exc:
+        logger.exception("AI health probe failed for %s", name)
+        return {"available": False, "status": "error", "error": str(exc)}
 
-        # Find server by ID
-        server_index = next((i for i, s in enumerate(servers) if s["id"] == server_id), None)
-        if server_index is None:
-            return {
-                "success": False,
-                "error": f"Server with ID {server_id} not found"
-            }
 
-        # Remove server
-        deleted_server = servers.pop(server_index)
+@router.get("/ai-health")
+async def get_ai_health():
+    """Return truthful runtime capability state for operator/diagnostics screens."""
+    from detections import get_detector_health
+    from services.gemma_engine import gemma_engine
+    from services.gemma_onnx_engine import gemma_onnx_engine
+    from services.yolo26_engine import yolo26_engine
 
-        # Save configuration
-        if save_analytics_config(config):
-            return {
-                "success": True,
-                "data": deleted_server,
-                "message": "Server deleted successfully"
-            }
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save configuration")
-    except Exception as e:
-        logger.error(f"Error deleting server: {str(e)}")
-        return {
-            "success": False,
-            "error": f"Failed to delete server: {str(e)}"
-        }
+    detectors = _safe_status("detectors", get_detector_health)
+    yolo = _safe_status("yolo", yolo26_engine.get_status)
+    gemma = _safe_status("gemma", gemma_engine.get_status)
+    paligemma = _safe_status("paligemma", gemma_onnx_engine.get_status)
+
+    detector_values = list(detectors.values()) if isinstance(detectors, dict) else []
+    missing_required = [
+        item.get("key")
+        for item in detector_values
+        if isinstance(item, dict) and item.get("required") and not item.get("available")
+    ]
+    degraded = bool(missing_required) or not bool(yolo.get("available", False))
+    if not gemma.get("available", False):
+        degraded = True
+
+    return {
+        "success": True,
+        "data": {
+            "overall": "degraded" if degraded else "healthy",
+            "required_detectors_missing": missing_required,
+            "detectors": detectors,
+            "yolo": yolo,
+            "gemma4": gemma,
+            "paligemma_onnx": paligemma,
+            "notes": {
+                "paligemma_optional": True,
+                "identity_matching_requires_embedding_backend": True,
+                "fallback_gesture_backend_is_analytics_only": True,
+            },
+        },
+        "message": "AI capability health retrieved successfully",
+    }
