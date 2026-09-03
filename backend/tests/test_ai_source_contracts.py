@@ -188,7 +188,7 @@ class AISourceContracts(unittest.TestCase):
         self.assertIn("case 'ptz-auto-track'", content)
         self.assertIn("Test PTZ & Load Presets", tour)
         self.assertIn("Save & Arm Controller", track)
-        self.assertIn("target handoff", track.lower())
+        self.assertIn("live handoff", track.lower())
 
     def test_training_refuses_raw_review_queue(self):
         text = source("training/train_yolo.py")
