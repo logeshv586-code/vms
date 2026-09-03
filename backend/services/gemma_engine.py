@@ -18,7 +18,6 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
-# Existing repository defaults remain supported, but deployments can override both files.
 _DEFAULT_GEMMA_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../gemma-4-E4B-it-GGUF")
 )
@@ -31,40 +30,39 @@ MMPROJ_PATH = os.getenv(
     os.path.join(_DEFAULT_GEMMA_DIR, "mmproj-gemma-4-E4B-it-BF16.gguf"),
 )
 
-# Layer 2 owns geometry and temporal facts. The VLM verifies visible context only.
 RULE_PROMPTS = {
-    1: ("Appearance Search", "Describe visible appearance features only. Do not claim identity unless supplied evidence explicitly contains an identity match."),
+    1: ("Appearance Search", "Describe visible appearance only. Never claim identity unless an explicit reviewed match is supplied."),
     2: ("Camera Tamper", "Check for obstruction, severe blur, darkness/overexposure, or a clearly displaced camera view."),
     3: ("Chain/Handbag Snatching", "Look for visible grabbing/pulling of a carried item plus victim reaction. Do not infer theft from proximity alone."),
-    4: ("Crowd Detection", "Describe visible crowd density and agitation. Use the supplied numeric person count as authoritative."),
-    5: ("Harassment", "Look for observable cornering, blocking, following, intimidation, or unwanted physical contact. Avoid inferring protected attributes."),
-    6: ("Face Capture", "Assess face visibility, frontal angle, occlusion, lighting, and image quality. Do not identify a person."),
-    7: ("Face Recognition", "Assess whether the face is suitable for recognition. Do not invent a name or match."),
+    4: ("Crowd Detection", "Describe visible crowd density and agitation. Treat supplied person counts as authoritative."),
+    5: ("Harassment", "Look for observable cornering, blocking, following, intimidation, or unwanted physical contact. Avoid demographic inference."),
+    6: ("Face Capture", "Assess face visibility, frontal angle, occlusion, lighting and image quality. Do not identify a person."),
+    7: ("Face Recognition", "Assess face suitability only. Never invent a name or identity match."),
     8: ("Gesture Detection", "Describe visible hand/body gestures and whether they resemble a distress or aggressive signal."),
-    9: ("Graffiti/Vandalism", "Look for observable property damage, marking, breaking, kicking, or tool use."),
+    9: ("Graffiti/Vandalism", "Look for observable property marking, breaking, kicking or destructive tool use."),
     10: ("Intrusion", "Verify visible presence and behavior; treat configured zone membership from Layer 2 as authoritative."),
     11: ("Boundary Crossing", "Describe visible motion/context; treat geometric line-crossing evidence from Layer 2 as authoritative."),
     12: ("Loitering", "Describe behavior consistent with waiting/pacing; treat Layer 2 dwell duration as authoritative."),
-    13: ("Mobile Snatching", "Look for a visible phone grab plus immediate separation/escape behavior. Do not infer theft from hand proximity alone."),
-    14: ("Object Classification", "Describe visible objects and scene context. Never invent objects that are not visible."),
-    15: ("People Fighting", "Look for repeated punching, kicking, grappling, forceful pushing, or aggressive physical contact."),
+    13: ("Mobile Snatching", "Look for a visible phone grab plus immediate separation/escape behavior. Do not infer theft from proximity alone."),
+    14: ("Object Classification", "Describe visible objects and scene context. Never invent unseen objects."),
+    15: ("People Fighting", "Look for repeated punching, kicking, grappling, forceful pushing or aggressive physical contact."),
     16: ("Person Collapsing", "Look for a visible fall/collapse or person lying down; do not diagnose a medical condition."),
-    17: ("Procession/Protest", "Describe visible organized group movement, banners/placards, and agitation without inferring political affiliation."),
-    18: ("Suspected Appearance", "Describe objective visible appearance/behavior only. Do not classify a person as suspicious based on demographic traits."),
-    19: ("Unattended Object", "Check whether a visible bag/package appears separated from nearby people; treat Layer 2 unattended duration as authoritative."),
-    20: ("Person Surrounded", "Look for a person physically surrounded, blocked, cornered, or showing visible distress; do not infer gender."),
-    21: ("Forced Removal", "Look for dragging, forced carrying, visible struggle, or forced entry into a vehicle. Do not infer relationship or intent without evidence."),
+    17: ("Procession/Protest", "Describe organized group movement, banners/placards and agitation without inferring political affiliation."),
+    18: ("Suspected Appearance", "Describe objective visible appearance/behavior only. Never classify suspicion from protected traits."),
+    19: ("Unattended Object", "Check whether a visible bag/package appears separated from nearby people; treat Layer 2 duration as authoritative."),
+    20: ("Person Surrounded", "Look for a person physically surrounded, blocked, cornered or showing visible distress; do not infer gender."),
+    21: ("Forced Removal", "Look for dragging, forced carrying, visible struggle or forced entry into a vehicle. Do not infer relationship or intent without evidence."),
     22: ("Vehicle Monitoring", "Describe vehicle type and visible behavior; treat tracker-derived speed/direction as authoritative."),
     23: ("Zone Monitoring", "Describe visible activity in the configured zone; treat Layer 2 zone membership/counts as authoritative."),
 }
 
 
-def _unavailable_result(reason: str) -> Dict[str, Any]:
+def _unavailable_result(reason: str, threat_type: str = "model_unavailable") -> Dict[str, Any]:
     return {
         "event_validated": False,
         "available": False,
         "severity": "unknown",
-        "threat_type": "model_unavailable",
+        "threat_type": threat_type,
         "short_description": reason,
         "confidence_score": 0.0,
         "simulated": False,
@@ -78,7 +76,6 @@ def _detect_gpu_layers() -> int:
             return int(configured)
         except ValueError:
             logger.warning("Invalid VMS_GEMMA_GPU_LAYERS=%r; auto-detecting", configured)
-
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
@@ -99,7 +96,7 @@ def _detect_gpu_layers() -> int:
 
 
 class GemmaEngine:
-    """Local multimodal Gemma 4/GGUF verifier with fail-closed behavior."""
+    """Local Gemma 4 multimodal verifier that always fails closed."""
 
     _instance = None
 
@@ -112,7 +109,6 @@ class GemmaEngine:
     def __init__(self):
         if self._initialized:
             return
-
         self.llm = None
         self.chat_handler = None
         self._inference_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gemma")
@@ -126,15 +122,11 @@ class GemmaEngine:
             logger.info("Local Gemma VLM disabled via DISABLE_VLM")
             self._initialized = True
             return
-
         if not os.path.exists(MODEL_PATH) or not os.path.exists(MMPROJ_PATH):
-            self._last_error = (
-                f"Gemma vision model files are missing. model={MODEL_PATH}, mmproj={MMPROJ_PATH}"
-            )
+            self._last_error = f"Gemma vision model files are missing. model={MODEL_PATH}, mmproj={MMPROJ_PATH}"
             logger.warning(self._last_error)
             self._initialized = True
             return
-
         try:
             self._gpu_layers = _detect_gpu_layers()
             self._load_model(self._gpu_layers)
@@ -143,21 +135,18 @@ class GemmaEngine:
             logger.error("Failed to initialize Gemma VLM: %s", exc)
             logger.debug(traceback.format_exc())
             self.llm = None
-
         self._initialized = True
 
     @property
     def available(self) -> bool:
         return self.llm is not None
 
-    def _load_model(self, n_gpu_layers: int):
+    def _load_model(self, n_gpu_layers: int) -> None:
         from llama_cpp import Llama
         try:
             from llama_cpp.llama_chat_format import Gemma4ChatHandler
         except ImportError as exc:
-            raise RuntimeError(
-                "Gemma 4 vision requires llama-cpp-python>=0.3.25 with Gemma4ChatHandler support"
-            ) from exc
+            raise RuntimeError("Gemma 4 vision requires llama-cpp-python>=0.3.25 with Gemma4ChatHandler") from exc
 
         def build(gpu_layers: int):
             handler = Gemma4ChatHandler(clip_model_path=MMPROJ_PATH)
@@ -180,7 +169,6 @@ class GemmaEngine:
             logger.warning("Gemma GPU load failed; retrying on CPU: %s", first_error)
             self._gpu_layers = 0
             self.llm, self.chat_handler = build(0)
-            logger.info("Gemma 4 VLM initialized with CPU fallback")
 
     def analyze_scene(self, frame: np.ndarray, stream_id: str):
         return self.analyze_behavior(
@@ -189,25 +177,17 @@ class GemmaEngine:
                 "id": 14,
                 "type": "General Scene Analysis",
                 "message": f"Broad scene verification for stream {stream_id}",
+                "source_id": stream_id,
             },
         )
 
     def analyze_behavior(self, frame: np.ndarray, event_context: dict):
+        context = dict(event_context or {})
         if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
-            return {
-                **_unavailable_result("No valid frame was supplied to the vision verifier."),
-                "threat_type": "invalid_frame",
-            }
-
+            return _unavailable_result("No valid frame was supplied to the vision verifier.", "invalid_frame")
         if not self.available:
-            reason = self._last_error or (
-                "Gemma vision verification is disabled."
-                if self._disabled
-                else "Gemma vision model is not loaded."
-            )
+            reason = self._last_error or ("Gemma vision verification is disabled." if self._disabled else "Gemma vision model is not loaded.")
             return _unavailable_result(reason)
-
-        # Do not queue stale CCTV frames behind an already-running vision request.
         if not self._inference_lock.acquire(blocking=False):
             return {
                 "event_validated": False,
@@ -218,16 +198,10 @@ class GemmaEngine:
                 "confidence_score": 0.0,
                 "simulated": False,
             }
-
         try:
-            future = self._inference_pool.submit(
-                self._do_inference, frame.copy(), dict(event_context or {})
-            )
+            future = self._inference_pool.submit(self._do_inference, frame.copy(), context)
             try:
                 result = future.result(timeout=self.timeout_seconds)
-                result.setdefault("available", True)
-                result.setdefault("simulated", False)
-                return result
             except FuturesTimeout:
                 future.cancel()
                 logger.warning("Gemma inference exceeded %ss", self.timeout_seconds)
@@ -240,6 +214,17 @@ class GemmaEngine:
                     "confidence_score": 0.0,
                     "simulated": False,
                 }
+            result.setdefault("available", True)
+            result.setdefault("simulated", False)
+            if result.get("event_validated") is True:
+                source_id = str(context.get("source_id") or context.get("stream_id") or "").strip()
+                if source_id:
+                    try:
+                        from services.event_dispatcher import dispatch_validated_layer3
+                        dispatch_validated_layer3(source_id, context, result)
+                    except Exception as exc:
+                        logger.exception("Validated Gemma event could not be persisted for %s: %s", source_id, exc)
+            return result
         except Exception as exc:
             logger.exception("Gemma analysis failed: %s", exc)
             return {
@@ -255,30 +240,24 @@ class GemmaEngine:
             self._inference_lock.release()
 
     def _do_inference(self, frame: np.ndarray, event_context: dict):
-        h, w = frame.shape[:2]
+        height, width = frame.shape[:2]
         max_width = max(320, int(os.getenv("VMS_GEMMA_MAX_WIDTH", "1024")))
-        if w > max_width:
-            scale = max_width / float(w)
-            frame = cv2.resize(
-                frame,
-                (max_width, max(1, int(h * scale))),
-                interpolation=cv2.INTER_AREA,
-            )
-
+        if width > max_width:
+            scale = max_width / float(width)
+            frame = cv2.resize(frame, (max_width, max(1, int(height * scale))), interpolation=cv2.INTER_AREA)
         jpeg_quality = max(35, min(95, int(os.getenv("VMS_GEMMA_JPEG_QUALITY", "70"))))
         ok, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
         if not ok:
             raise RuntimeError("Could not encode frame for Gemma")
         data_uri = "data:image/jpeg;base64," + base64.b64encode(buffer).decode("ascii")
 
-        rule_id = int(event_context.get("id", 14) or 14)
-        rule_name, focus = RULE_PROMPTS.get(
-            rule_id,
-            ("Security Event", "Verify only observable evidence in the frame; do not invent missing facts."),
-        )
-        layer2_message = str(event_context.get("message", "No Layer 2 context provided"))
-        layer2_severity = str(event_context.get("severity", "unknown"))
-
+        try:
+            rule_id = int(event_context.get("id", 14) or 14)
+        except (TypeError, ValueError):
+            rule_id = 14
+        rule_name, focus = RULE_PROMPTS.get(rule_id, ("Security Event", "Verify only observable image evidence; do not invent missing facts."))
+        layer2_message = str(event_context.get("message", "No Layer 2 context provided"))[:1200]
+        layer2_severity = str(event_context.get("severity", "unknown"))[:40]
         rag_context = ""
         if security_rag is not None:
             try:
@@ -287,7 +266,7 @@ class GemmaEngine:
                 rag_context = ""
 
         prompt = f"""You are a CCTV event verifier. Validate only what is supported by the image and supplied Layer 2 evidence.
-Never fabricate identity, duration, speed, direction, zone membership, object possession, intent, demographic traits, or unseen actions.
+Never fabricate identity, duration, speed, direction, zone membership, possession, intent, demographic traits, or unseen actions.
 If evidence is ambiguous, set event_validated=false and lower confidence.
 
 Rule: {rule_name}
@@ -297,25 +276,10 @@ Verification focus: {focus}
 Operational context: {rag_context}
 
 Return ONLY one JSON object with exactly these fields:
-{{
-  "event_validated": true,
-  "severity": "low|medium|high|critical|unknown",
-  "threat_type": "short_machine_label",
-  "short_description": "observable evidence summary",
-  "confidence_score": 0.0
-}}
+{{"event_validated":true,"severity":"low|medium|high|critical|unknown","threat_type":"short_machine_label","short_description":"observable evidence summary","confidence_score":0.0}}
 """
-
         response = self.llm.create_chat_completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": data_uri}},
-                    ],
-                }
-            ],
+            messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": data_uri}}]}],
             response_format={"type": "json_object"},
             max_tokens=256,
             temperature=0.0,
@@ -333,45 +297,24 @@ Return ONLY one JSON object with exactly these fields:
         if text.endswith("```"):
             text = text[:-3]
         text = text.strip()
-
         try:
             parsed = json.loads(text)
         except Exception:
-            start = text.find("{")
-            end = text.rfind("}") + 1
+            start, end = text.find("{"), text.rfind("}") + 1
             if start < 0 or end <= start:
-                return {
-                    "event_validated": False,
-                    "available": True,
-                    "severity": "unknown",
-                    "threat_type": "parse_error",
-                    "short_description": "Gemma returned a malformed response; event was not validated.",
-                    "confidence_score": 0.0,
-                    "simulated": False,
-                }
+                return {"event_validated": False, "available": True, "severity": "unknown", "threat_type": "parse_error", "short_description": "Gemma returned malformed JSON; event was not validated.", "confidence_score": 0.0, "simulated": False}
             try:
                 parsed = json.loads(text[start:end])
             except Exception:
-                return {
-                    "event_validated": False,
-                    "available": True,
-                    "severity": "unknown",
-                    "threat_type": "parse_error",
-                    "short_description": "Gemma returned a malformed response; event was not validated.",
-                    "confidence_score": 0.0,
-                    "simulated": False,
-                }
-
+                return {"event_validated": False, "available": True, "severity": "unknown", "threat_type": "parse_error", "short_description": "Gemma returned malformed JSON; event was not validated.", "confidence_score": 0.0, "simulated": False}
         confidence = parsed.get("confidence_score", 0.0)
         try:
             confidence = max(0.0, min(1.0, float(confidence)))
         except (TypeError, ValueError):
             confidence = 0.0
-
         severity = str(parsed.get("severity", "unknown")).lower()
         if severity not in {"low", "medium", "high", "critical", "unknown"}:
             severity = "unknown"
-
         return {
             "event_validated": parsed.get("event_validated") is True,
             "available": True,
@@ -382,29 +325,19 @@ Return ONLY one JSON object with exactly these fields:
             "simulated": False,
         }
 
-    def get_status(self):
-        if self._disabled:
-            mode = "disabled"
-        elif self.available:
-            mode = "gpu" if self._gpu_layers != 0 else "cpu"
-        else:
-            mode = "unavailable"
-
+    def get_status(self) -> Dict[str, Any]:
         return {
-            "initialized": self._initialized,
+            "enabled": not self._disabled,
             "available": self.available,
-            "status": "active" if self.available else mode,
-            "mode": mode,
-            "gpu_layers": self._gpu_layers,
-            "busy": self._inference_lock.locked(),
-            "model": os.path.basename(MODEL_PATH),
+            "model_loaded": self.llm is not None,
             "model_path": MODEL_PATH,
             "mmproj_path": MMPROJ_PATH,
-            "rules_covered": len(RULE_PROMPTS),
-            "simulated": False,
+            "backend": "llama-cpp-python/Gemma4ChatHandler",
+            "timeout_seconds": self.timeout_seconds,
+            "n_gpu_layers": self._gpu_layers,
             "last_error": self._last_error,
+            "simulated": False,
         }
 
 
-# Global singleton
 gemma_engine = GemmaEngine()
