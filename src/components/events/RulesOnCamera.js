@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { fetchEventRules, fetchCameraRules, applyCameraRules, toggleCameraRule } from '../../services/eventsService';
+import React, { useEffect, useMemo, useState } from 'react';
+import { applyCameraRules, fetchCameraRules, fetchEventRules } from '../../services/eventService';
 import { useCameraStore } from '../../store/cameraStore';
+import { enrichRule, getRulesForCamera } from '../../utils/detectionRules';
 import RuleToolbar from './RuleToolbar';
 import CameraRuleTable from './CameraRuleTable';
 import './RulesOnCamera.css';
@@ -16,276 +17,172 @@ const RulesOnCamera = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('All Areas');
-  const { collections } = useCameraStore();
   const [cameraRules, setCameraRules] = useState({});
+  const collections = useCameraStore(state => state.collections || []);
 
-  // Load rules and cameras on component mount
-  useEffect(() => {
-    loadRulesAndCameras();
-  }, []);
+  const normalizeCameraRules = (raw, cameraList) => {
+    const output = {};
+    cameraList.forEach(camera => { output[camera.id] = getRulesForCamera(raw || {}, camera); });
+    return output;
+  };
 
   const loadRulesAndCameras = async () => {
     try {
       setLoading(true);
       setError(null);
+      const allCameras = useCameraStore.getState().cameras || [];
+      const [rulesResponse, cameraRulesResponse] = await Promise.all([
+        fetchEventRules(),
+        fetchCameraRules()
+      ]);
+      if (!rulesResponse?.success) throw new Error(rulesResponse?.error || 'Failed to load event rules');
+      if (!cameraRulesResponse?.success) throw new Error(cameraRulesResponse?.error || 'Failed to load camera rules');
 
-      // Fetch event rules
-      const rulesResponse = await fetchEventRules();
-      if (!rulesResponse.success) {
-        setError(rulesResponse.error || 'Failed to load event rules');
-        return;
-      }
-
-      // Set rules and filter enabled ones
-      const allRules = rulesResponse.data.rules;
+      const allRules = (rulesResponse.data?.rules || []).map(enrichRule);
       setRules(allRules);
-      setEnabledRules(allRules.filter(rule => rule.enabled).map(rule => rule.id));
-
-      // Get cameras from store
-      const allCameras = useCameraStore.getState().cameras;
+      setEnabledRules(allRules.filter(rule => rule.enabled).map(rule => Number(rule.id)));
       setCameras(allCameras);
-
-      // Fetch camera rules
-      const cameraRulesResponse = await fetchCameraRules();
-      if (cameraRulesResponse.success) {
-        setCameraRules(cameraRulesResponse.data.cameraRules || {});
-      }
+      setCameraRules(normalizeCameraRules(cameraRulesResponse.data?.cameraRules || {}, allCameras));
     } catch (err) {
-      setError('Error loading data: ' + err.message);
+      setError(`Error loading data: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRuleToggle = (ruleId) => {
-    setSelectedRules(prevSelected => {
-      if (prevSelected.includes(ruleId)) {
-        return prevSelected.filter(id => id !== ruleId);
-      } else {
-        return [...prevSelected, ruleId];
-      }
-    });
+  useEffect(() => { loadRulesAndCameras(); }, []);
+
+  const handleRuleToggle = ruleId => setSelectedRules(previous =>
+    previous.includes(ruleId) ? previous.filter(id => id !== ruleId) : [...previous, ruleId]
+  );
+
+  const handleCameraSelect = cameraId => setSelectedCameras(previous =>
+    previous.includes(cameraId) ? previous.filter(id => id !== cameraId) : [...previous, cameraId]
+  );
+
+  const filteredCameras = useMemo(() => cameras.filter(camera => {
+    const matchesSearch = String(camera.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const collection = collections.find(item => item.id === camera.collectionId);
+    const area = collection?.name || '';
+    return matchesSearch && (selectedArea === 'All Areas' || area === selectedArea);
+  }), [cameras, collections, searchQuery, selectedArea]);
+
+  const handleSelectAllCameras = selected => {
+    setSelectedCameras(selected ? filteredCameras.map(camera => camera.id) : []);
   };
 
-  const handleCameraSelect = (cameraId) => {
-    setSelectedCameras(prevSelected => {
-      if (prevSelected.includes(cameraId)) {
-        return prevSelected.filter(id => id !== cameraId);
-      } else {
-        return [...prevSelected, cameraId];
-      }
-    });
-  };
+  const applyRules = async ruleIds => {
+    if (!selectedCameras.length) {
+      setError('Select at least one camera first.');
+      return;
+    }
+    const invalid = ruleIds.filter(ruleId => !enabledRules.includes(Number(ruleId)));
+    if (invalid.length) {
+      setError(`These rules are globally disabled and cannot be assigned: ${invalid.join(', ')}`);
+      return;
+    }
 
-  const handleSelectAllCameras = (isSelected) => {
-    if (isSelected) {
-      const filteredCameras = getFilteredCameras().map(camera => camera.id);
-      setSelectedCameras(filteredCameras);
-    } else {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await applyCameraRules(selectedCameras, ruleIds);
+      if (!response?.success) throw new Error(response?.error || 'Failed to update camera rules');
+      setCameraRules(previous => {
+        const next = { ...previous };
+        selectedCameras.forEach(cameraId => { next[cameraId] = [...ruleIds]; });
+        return next;
+      });
+      setSuccessMessage(ruleIds.length
+        ? `Applied ${ruleIds.length} rule(s) to ${selectedCameras.length} camera(s).`
+        : `All detection rules are OFF for ${selectedCameras.length} selected camera(s).`);
+      setSelectedRules([]);
       setSelectedCameras([]);
-    }
-  };
-
-  const handleApplyRules = async () => {
-    if (selectedRules.length === 0) {
-      setError('Please select at least one rule to apply');
-      return;
-    }
-
-    if (selectedCameras.length === 0) {
-      setError('Please select at least one camera');
-      return;
-    }
-
-    // Validate that all selected rules are enabled
-    const disabledRules = selectedRules.filter(ruleId => !enabledRules.includes(ruleId));
-    if (disabledRules.length > 0) {
-      const disabledRuleNames = disabledRules.map(ruleId => {
-        const rule = rules.find(r => r.id === ruleId);
-        return rule ? rule.name : `Rule ${ruleId}`;
-      }).join(', ');
-
-      setError(`Cannot apply disabled rules: ${disabledRuleNames}. Enable them in Detection Rule Set first.`);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await applyCameraRules(selectedCameras, selectedRules);
-
-      if (response.success) {
-        setSuccessMessage('Rules applied successfully to selected cameras');
-        setCameraRules(response.data.cameraRules);
-
-        // Clear selection after successful application
-        setSelectedRules([]);
-        setSelectedCameras([]);
-
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setError(response.error || 'Failed to apply rules to cameras');
-      }
+      setTimeout(() => setSuccessMessage(''), 3500);
     } catch (err) {
-      setError('Error applying rules: ' + err.message);
+      setError(`Error applying rules: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle toggling a specific rule for a specific camera
-  const handleToggleCameraRule = async (cameraId, ruleId, isChecked) => {
+  const handleToggleCameraRule = async (cameraId, ruleId, checked) => {
+    if (!enabledRules.includes(Number(ruleId))) {
+      setError(`Rule ${ruleId} is globally disabled. Enable it in Detection Rule Set first.`);
+      return;
+    }
+    const current = (cameraRules[cameraId] || []).map(Number);
+    const next = checked
+      ? [...new Set([...current, Number(ruleId)])]
+      : current.filter(id => id !== Number(ruleId));
+
+    // Optimistic UI gives immediate ON/OFF feedback, then rolls back on failure.
+    setCameraRules(previous => ({ ...previous, [cameraId]: next }));
     try {
-      setLoading(true);
-      setError(null);
-
-      // Validate that the rule is enabled
-      if (!enabledRules.includes(ruleId)) {
-        const ruleName = rules.find(r => r.id === ruleId)?.name || `Rule ${ruleId}`;
-        setError(`Cannot apply disabled rule: ${ruleName}. Enable it in Detection Rule Set first.`);
-        return;
-      }
-
-      // Get current rules for this camera
-      const currentRules = cameraRules[cameraId] || [];
-
-      // Create new rules array based on the checkbox state
-      let newRules;
-      if (isChecked) {
-        // Add the rule if it's not already there
-        newRules = [...currentRules, ruleId].filter((v, i, a) => a.indexOf(v) === i);
-      } else {
-        // Remove the rule
-        newRules = currentRules.filter(id => id !== ruleId);
-      }
-
-      // Call API to update the camera rules
-      const response = await applyCameraRules([cameraId], newRules);
-
-      if (response.success) {
-        // Update local state
-        setCameraRules(response.data.cameraRules);
-        setSuccessMessage(`Rule ${ruleId} ${isChecked ? 'enabled' : 'disabled'} for camera`);
-
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setError(response.error || 'Failed to update camera rule');
-      }
+      const response = await applyCameraRules([cameraId], next);
+      if (!response?.success) throw new Error(response?.error || 'Failed to update camera rule');
+      const ruleName = rules.find(rule => Number(rule.id) === Number(ruleId))?.name || `Rule ${ruleId}`;
+      setSuccessMessage(`${ruleName} is ${checked ? 'ON' : 'OFF'} for this camera.`);
+      setTimeout(() => setSuccessMessage(''), 2500);
     } catch (err) {
-      setError('Error updating camera rule: ' + err.message);
-    } finally {
-      setLoading(false);
+      setCameraRules(previous => ({ ...previous, [cameraId]: current }));
+      setError(`Error updating camera rule: ${err.message}`);
     }
   };
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
+  const configuredCameras = cameras.filter(camera => (cameraRules[camera.id] || []).length > 0).length;
+  const areaOptions = ['All Areas', ...collections.map(collection => collection.name)];
 
-  const handleAreaChange = (e) => {
-    setSelectedArea(e.target.value);
-  };
-
-  const getFilteredCameras = () => {
-    return cameras.filter(camera => {
-      // Filter by search query
-      const matchesSearch = camera.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Filter by area
-      const cameraCollection = collections.find(c => c.id === camera.collectionId);
-      const cameraArea = cameraCollection ? cameraCollection.name : '';
-      const matchesArea = selectedArea === 'All Areas' || cameraArea === selectedArea;
-
-      return matchesSearch && matchesArea;
-    });
-  };
-
-  const getAreaOptions = () => {
-    const areas = ['All Areas', ...collections.map(c => c.name)];
-    return areas;
-  };
-
-  if (loading && cameras.length === 0) {
-    return <div className="rules-on-camera-loading">Loading data...</div>;
-  }
+  if (loading && cameras.length === 0) return <div className="rules-on-camera-loading">Loading data...</div>;
 
   return (
     <div className="rules-on-camera">
       <div className="rules-on-camera-header">
         <h2>Rules on Camera</h2>
-        <p>Apply detection rules to cameras by zone</p>
+        <p>
+          A rule is effective only when it is <strong>globally enabled</strong> and <strong>ON for the camera</strong>.
+          Runtime AI can still show STANDBY/OFFLINE until that camera feed and engine are running.
+        </p>
+        <div style={{ marginTop: 8, color: '#64748b', fontSize: 12 }}>
+          {enabledRules.length}/23 globally enabled · {configuredCameras}/{cameras.length} cameras have at least one rule
+        </div>
       </div>
 
-      {successMessage && (
-        <div className="success-message">{successMessage}</div>
-      )}
-
-      {error && (
-        <div className="error-message">{error}</div>
-      )}
+      {successMessage && <div className="success-message">{successMessage}</div>}
+      {error && <div className="error-message">{error}</div>}
 
       <div className="rules-on-camera-filters">
         <div className="search-filter">
-          <input
-            type="text"
-            placeholder="Search Cameras"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            className="search-input"
-          />
+          <input type="text" placeholder="Search Cameras" value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)} className="search-input" />
         </div>
         <div className="area-filter">
-          <select
-            value={selectedArea}
-            onChange={handleAreaChange}
-            className="area-select"
-          >
-            {getAreaOptions().map(area => (
-              <option key={area} value={area}>{area}</option>
-            ))}
+          <select value={selectedArea} onChange={event => setSelectedArea(event.target.value)} className="area-select">
+            {areaOptions.map(area => <option key={area} value={area}>{area}</option>)}
           </select>
         </div>
         <div className="select-all-container">
           <label className="select-all-label">
-            <input
-              type="checkbox"
-              checked={selectedCameras.length > 0 && selectedCameras.length === getFilteredCameras().length}
-              onChange={(e) => handleSelectAllCameras(e.target.checked)}
-              className="select-all-checkbox"
-            />
-            Select All
+            <input type="checkbox"
+              checked={filteredCameras.length > 0 && selectedCameras.length === filteredCameras.length}
+              onChange={event => handleSelectAllCameras(event.target.checked)} className="select-all-checkbox" />
+            Select visible cameras
           </label>
         </div>
-        <button
-          className="filter-apply-button"
-          onClick={handleApplyRules}
-          disabled={loading || selectedRules.length === 0 || selectedCameras.length === 0}
-        >
-          Apply Rules
+        <button className="filter-apply-button" onClick={() => applyRules(selectedRules)}
+          disabled={loading || selectedRules.length === 0 || selectedCameras.length === 0}>
+          Apply Selected Rules
+        </button>
+        <button className="filter-apply-button" style={{ background: '#64748b' }} onClick={() => applyRules([])}
+          disabled={loading || selectedCameras.length === 0}>
+          Turn All OFF
         </button>
       </div>
 
       <div className="rules-on-camera-content">
-        <RuleToolbar
-          rules={rules}
-          enabledRules={enabledRules}
-          selectedRules={selectedRules}
-          onRuleToggle={handleRuleToggle}
-        />
-
-        <CameraRuleTable
-          cameras={getFilteredCameras()}
-          selectedCameras={selectedCameras}
-          onCameraSelect={handleCameraSelect}
-          cameraRules={cameraRules}
-          rules={rules}
-          collections={collections}
-          enabledRules={enabledRules}
-          onToggleCameraRule={handleToggleCameraRule}
-        />
+        <RuleToolbar rules={rules} enabledRules={enabledRules} selectedRules={selectedRules} onRuleToggle={handleRuleToggle} />
+        <CameraRuleTable cameras={filteredCameras} selectedCameras={selectedCameras} onCameraSelect={handleCameraSelect}
+          cameraRules={cameraRules} rules={rules} collections={collections} enabledRules={enabledRules}
+          onToggleCameraRule={handleToggleCameraRule} />
       </div>
     </div>
   );
