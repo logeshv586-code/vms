@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - fix/realtime-detection-reliability-20260903
+      - 'fix/**'
   pull_request:
     branches:
       - main
