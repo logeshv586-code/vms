@@ -1,8 +1,9 @@
-"""Face recognition and watchlist matching for VMS.
+"""Face detection, reviewed identity matching and watchlist alerting.
 
-Identity matching is deliberately fail-closed.  OpenCV DNN is used only for
-face *detection* when a real embedding backend is unavailable; color/gray
-histograms are never treated as identity embeddings.
+The detector deliberately fails closed for identity. OpenCV DNN may locate a
+face when the embedding backend is unavailable, but only a real 128-D
+``face_recognition`` embedding may match a registered identity. Unknown people
+are never auto-enrolled and image histograms are never used as identity.
 """
 
 from __future__ import annotations
@@ -28,8 +29,7 @@ except ImportError:
     fr = None
     _FR_AVAILABLE = False
     logger.warning(
-        "face_recognition is not installed; FaceRecognitionDetector will run "
-        "in detection-only mode and will not make identity/watchlist matches."
+        "face_recognition is not installed; face identity/watchlist matching is disabled."
     )
 
 try:
@@ -41,7 +41,7 @@ except ImportError:
 
 
 class FaceRecognitionDetector(BaseDetector):
-    """Recognise registered faces and raise alerts only for watchlist matches."""
+    """Recognise reviewed identities and alert only on real watchlist matches."""
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.encodings_db_path = ""
@@ -53,17 +53,23 @@ class FaceRecognitionDetector(BaseDetector):
         super().__init__("face_recognition", config)
 
     def load_model(self) -> None:
-        self.recognition_tolerance = float(
-            self.config.get(
-                "recognition_tolerance",
-                os.getenv("VMS_FACE_RECOGNITION_TOLERANCE", "0.5"),
-            )
+        self.recognition_tolerance = max(
+            0.1,
+            min(
+                0.9,
+                float(
+                    self.config.get(
+                        "recognition_tolerance",
+                        os.getenv("VMS_FACE_RECOGNITION_TOLERANCE", "0.5"),
+                    )
+                ),
+            ),
         )
         self.detection_model = str(self.config.get("detection_model", "hog"))
-        self.dnn_confidence = float(self.config.get("dnn_confidence_threshold", 0.6))
+        self.dnn_confidence = max(
+            0.1, min(0.99, float(self.config.get("dnn_confidence_threshold", 0.6)))
+        )
         self.max_faces = max(1, int(self.config.get("max_faces", 20)))
-        # Automatic identity enrollment is intentionally disabled. Unknown
-        # captures must be reviewed/tagged through the registration API.
         self.auto_register = False
         self.alert_on_watchlist = bool(self.config.get("alert_on_watchlist", True))
 
@@ -77,34 +83,37 @@ class FaceRecognitionDetector(BaseDetector):
         self._load_encodings_db()
 
         if not self._use_fr_lib:
-            proto = self.config.get(
-                "dnn_proto_path",
-                os.path.join(os.path.dirname(__file__), "..", "models", "deploy.prototxt"),
+            proto = os.path.abspath(
+                self.config.get(
+                    "dnn_proto_path",
+                    os.path.join(os.path.dirname(__file__), "..", "models", "deploy.prototxt"),
+                )
             )
-            model = self.config.get(
-                "dnn_model_path",
-                os.path.join(
-                    os.path.dirname(__file__),
-                    "..",
-                    "models",
-                    "res10_300x300_ssd_iter_140000.caffemodel",
-                ),
+            model = os.path.abspath(
+                self.config.get(
+                    "dnn_model_path",
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "models",
+                        "res10_300x300_ssd_iter_140000.caffemodel",
+                    ),
+                )
             )
             try:
                 if os.path.isfile(proto) and os.path.isfile(model):
                     self.dnn_net = cv2.dnn.readNetFromCaffe(proto, model)
-                    logger.info("OpenCV DNN face detector loaded (detection-only fallback).")
+                    logger.info("OpenCV DNN face detector loaded in detection-only mode")
                 else:
-                    logger.warning("OpenCV DNN face detector assets are missing.")
+                    logger.warning("OpenCV DNN face detector assets are missing")
             except Exception as exc:
                 logger.error("Failed to load OpenCV face detector: %s", exc)
                 self.dnn_net = None
 
         logger.info(
-            "FaceRecognitionDetector ready: identities=%d backend=%s watchlist_alerts=%s",
+            "FaceRecognitionDetector ready: identities=%d backend=%s auto_register=false",
             len(self._known_encodings),
             self.backend_name,
-            self.alert_on_watchlist,
         )
 
     @property
@@ -131,15 +140,14 @@ class FaceRecognitionDetector(BaseDetector):
         }
 
     def detect(self, frame: np.ndarray, **kwargs) -> Dict[str, Any]:
-        camera_toggle_active = kwargs.get("camera_toggle_active", True)
-        if not self.is_enabled or not camera_toggle_active:
+        if not self.is_enabled or not kwargs.get("camera_toggle_active", True):
             return self._empty_result("detection_toggle_off")
         if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
             return self._empty_result("invalid_frame")
 
         stream_id = str(kwargs.get("stream_id", kwargs.get("camera_id", "unknown")))
         timestamp = float(kwargs.get("timestamp", time.time()))
-        capture_db_ids: List[str] = list(kwargs.get("capture_db_ids", []) or [])
+        capture_db_ids = list(kwargs.get("capture_db_ids", []) or [])
 
         try:
             with self._lock:
@@ -151,14 +159,15 @@ class FaceRecognitionDetector(BaseDetector):
             return result
 
         detections: List[Dict[str, Any]] = []
-        recognised_identities: List[str] = []
+        recognised: List[str] = []
         watchlist_hits: List[str] = []
+        best_watchlist_confidence = 0.0
 
         for idx, loc in enumerate(face_locations):
             encoding = face_encodings[idx] if idx < len(face_encodings) else None
             identity, distance = self._match_encoding(encoding)
             confidence = self._distance_to_confidence(distance) if identity else 0.0
-            x1, y1, x2, y2 = [int(v) for v in loc]
+            x1, y1, x2, y2 = [int(value) for value in loc]
             category = self._known_categories.get(identity, "person") if identity else "unknown"
             is_watchlisted = False
 
@@ -182,34 +191,56 @@ class FaceRecognitionDetector(BaseDetector):
                         timestamp=timestamp,
                     )
                 except Exception as exc:
-                    logger.warning("Recognition log write failed: %s", exc)
+                    logger.warning("Recognition audit log write failed: %s", exc)
 
-            detections.append(
-                {
-                    "bbox": [x1, y1, x2, y2],
-                    "confidence": round(confidence, 4),
-                    "label": identity or "unknown",
-                    "category": category,
-                    "distance": round(distance, 4) if distance is not None else None,
-                    "matched": identity is not None,
-                    "is_watchlisted": is_watchlisted,
-                    "identity_backend": self.backend_name,
-                }
-            )
+            detection = {
+                "bbox": [x1, y1, x2, y2],
+                "confidence": round(confidence, 4),
+                "label": identity or "unknown",
+                "category": category,
+                "distance": round(distance, 4) if distance is not None else None,
+                "matched": identity is not None,
+                "is_watchlisted": is_watchlisted,
+                "identity_backend": self.backend_name,
+            }
+            detections.append(detection)
 
             if identity:
-                recognised_identities.append(identity)
-                if is_watchlisted:
-                    watchlist_hits.append(identity)
+                recognised.append(identity)
+            if is_watchlisted and identity:
+                watchlist_hits.append(identity)
+                best_watchlist_confidence = max(best_watchlist_confidence, confidence)
+
+        alert_triggered = bool(watchlist_hits) and self.alert_on_watchlist
+        if alert_triggered:
+            try:
+                from services.event_dispatcher import dispatch_confirmed_event
+
+                names = ", ".join(sorted(set(watchlist_hits)))
+                dispatch_confirmed_event(
+                    stream_id,
+                    "Face Recognition",
+                    "critical",
+                    f"Watchlist identity matched: {names}",
+                    rule_id=7,
+                    confidence=best_watchlist_confidence,
+                    data={
+                        "watchlist_matches": sorted(set(watchlist_hits)),
+                        "backend": self.backend_name,
+                    },
+                )
+            except Exception as exc:
+                logger.exception("Failed to dispatch watchlist event for %s: %s", stream_id, exc)
 
         return {
-            "triggered": bool(recognised_identities),
-            "alert_triggered": bool(watchlist_hits) and self.alert_on_watchlist,
+            "triggered": bool(recognised),
+            "alert_triggered": alert_triggered,
             "detections": detections,
+            "watchlist_matches": sorted(set(watchlist_hits)),
             "metadata": {
                 "total_faces": len(face_locations),
-                "recognised_count": len(recognised_identities),
-                "recognised_identities": recognised_identities,
+                "recognised_count": len(recognised),
+                "recognised_identities": recognised,
                 "watchlist_hits": watchlist_hits,
                 "stream_id": stream_id,
                 "timestamp": timestamp,
@@ -225,29 +256,23 @@ class FaceRecognitionDetector(BaseDetector):
         if not name:
             return {"success": False, "message": "Identity name is required."}
         if not self.recognition_available:
-            return {
-                "success": False,
-                "message": "Face identity backend is unavailable. Install/configure face_recognition before enrollment.",
-            }
+            return {"success": False, "message": "Face identity backend is unavailable."}
         if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
             return {"success": False, "message": "Invalid registration image."}
 
         with self._lock:
             _, encodings = self._encode_faces_fr(frame)
-            if len(encodings) == 0:
-                return {"success": False, "message": "No face detected in the provided image."}
-            if len(encodings) > 1:
+            if len(encodings) != 1:
                 return {
                     "success": False,
                     "message": f"Expected exactly one face but found {len(encodings)}.",
                 }
-            encoding = np.asarray(encodings[0], dtype=np.float64)
-            if encoding.shape != (128,) or not np.isfinite(encoding).all():
+            embedding = np.asarray(encodings[0], dtype=np.float64)
+            if embedding.shape != (128,) or not np.isfinite(embedding).all():
                 return {"success": False, "message": "Face embedding was invalid."}
-            self._known_encodings.setdefault(name, []).append(encoding.tolist())
+            self._known_encodings.setdefault(name, []).append(embedding.tolist())
             self._known_categories[name] = str(category or "person")
             self._save_encodings_db()
-
         return {"success": True, "message": f"Face registered for '{name}' as '{category}'."}
 
     def seed_from_directory(self, directory: str, category: str = "person") -> Dict[str, Any]:
@@ -276,12 +301,7 @@ class FaceRecognitionDetector(BaseDetector):
                     break
             if not enrolled:
                 failed += 1
-        return {
-            "success": True,
-            "registered": registered,
-            "failed": failed,
-            "message": f"Seeded {registered} identities from reviewed labelled images.",
-        }
+        return {"success": True, "registered": registered, "failed": failed}
 
     def unregister_face(self, name: str) -> Dict[str, Any]:
         with self._lock:
@@ -297,9 +317,9 @@ class FaceRecognitionDetector(BaseDetector):
             {
                 "name": name,
                 "category": self._known_categories.get(name, "person"),
-                "samples": len(encodings),
+                "samples": len(samples),
             }
-            for name, encodings in sorted(self._known_encodings.items())
+            for name, samples in sorted(self._known_encodings.items())
         ]
 
     def _encode_faces(self, frame: np.ndarray) -> Tuple[List[List[int]], List[Optional[np.ndarray]]]:
@@ -322,10 +342,7 @@ class FaceRecognitionDetector(BaseDetector):
             return []
         height, width = frame.shape[:2]
         blob = cv2.dnn.blobFromImage(
-            cv2.resize(frame, (300, 300)),
-            1.0,
-            (300, 300),
-            (104.0, 177.0, 123.0),
+            cv2.resize(frame, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0)
         )
         self.dnn_net.setInput(blob)
         output = self.dnn_net.forward()
@@ -334,8 +351,9 @@ class FaceRecognitionDetector(BaseDetector):
             confidence = float(output[0, 0, idx, 2])
             if confidence < self.dnn_confidence:
                 continue
-            raw = output[0, 0, idx, 3:7] * np.array([width, height, width, height])
-            x1, y1, x2, y2 = raw.astype(int)
+            x1, y1, x2, y2 = (
+                output[0, 0, idx, 3:7] * np.array([width, height, width, height])
+            ).astype(int)
             x1 = max(0, min(width - 1, x1))
             y1 = max(0, min(height - 1, y1))
             x2 = max(x1 + 1, min(width, x2))
@@ -346,7 +364,7 @@ class FaceRecognitionDetector(BaseDetector):
         return locations
 
     def _match_encoding(self, encoding: Optional[Sequence[float]]) -> Tuple[Optional[str], Optional[float]]:
-        if encoding is None or not self.recognition_available or fr is None or not self._known_encodings:
+        if encoding is None or not self.recognition_available or fr is None:
             return None, None
         probe = np.asarray(encoding, dtype=np.float64)
         if probe.shape != (128,) or not np.isfinite(probe).all():
@@ -357,27 +375,23 @@ class FaceRecognitionDetector(BaseDetector):
         for name, known_list in self._known_encodings.items():
             valid = []
             for item in known_list:
-                candidate = np.asarray(item, dtype=np.float64)
-                if candidate.shape == (128,) and np.isfinite(candidate).all():
-                    valid.append(candidate)
+                sample = np.asarray(item, dtype=np.float64)
+                if sample.shape == (128,) and np.isfinite(sample).all():
+                    valid.append(sample)
             if not valid:
                 continue
             distance = float(np.min(fr.face_distance(valid, probe)))
             if distance < best_distance:
-                best_distance = distance
-                best_name = name
-
+                best_name, best_distance = name, distance
         if best_name is not None and best_distance <= self.recognition_tolerance:
             return best_name, best_distance
         return None, best_distance if np.isfinite(best_distance) else None
 
-    def _distance_to_confidence(self, distance: Optional[float]) -> float:
+    @staticmethod
+    def _distance_to_confidence(distance: Optional[float]) -> float:
         if distance is None:
             return 0.0
-        tolerance = max(self.recognition_tolerance, 1e-6)
-        # A display score only; identity acceptance is based on calibrated
-        # embedding distance threshold above, not this transformed value.
-        return max(0.0, min(1.0, 1.0 - (float(distance) / max(1.0, tolerance))))
+        return max(0.0, min(1.0, 1.0 - float(distance)))
 
     def _load_encodings_db(self) -> None:
         self._known_encodings = {}
@@ -389,10 +403,8 @@ class FaceRecognitionDetector(BaseDetector):
                 data = json.load(handle)
             encodings = data.get("encodings", data) if isinstance(data, dict) else {}
             categories = data.get("categories", {}) if isinstance(data, dict) else {}
-            if not isinstance(encodings, dict):
-                raise ValueError("encodings database must contain an object mapping identity to embeddings")
             cleaned: Dict[str, List[List[float]]] = {}
-            for name, samples in encodings.items():
+            for name, samples in encodings.items() if isinstance(encodings, dict) else []:
                 valid_samples: List[List[float]] = []
                 for sample in samples if isinstance(samples, list) else []:
                     array = np.asarray(sample, dtype=np.float64)
@@ -402,11 +414,8 @@ class FaceRecognitionDetector(BaseDetector):
                     cleaned[str(name)] = valid_samples
             self._known_encodings = cleaned
             self._known_categories = categories if isinstance(categories, dict) else {}
-            logger.info("Loaded %d valid face identities", len(cleaned))
         except Exception as exc:
             logger.error("Failed to load face encodings database: %s", exc)
-            self._known_encodings = {}
-            self._known_categories = {}
 
     def _save_encodings_db(self) -> None:
         temporary = f"{self.encodings_db_path}.tmp"
@@ -429,6 +438,7 @@ class FaceRecognitionDetector(BaseDetector):
             "triggered": False,
             "alert_triggered": False,
             "detections": [],
+            "watchlist_matches": [],
             "metadata": {
                 "skipped": reason,
                 "backend": self.backend_name,
