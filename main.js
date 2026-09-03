@@ -1,12 +1,18 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-
 const { spawn } = require('child_process');
 
 // Use a consistent path for the camera configuration file
 const configPath = path.join(app.getPath('userData'), 'camera_configuration.json');
 let vlcProcess = null;
+
+function redactUrlForLog(value) {
+  if (typeof value !== 'string') return value;
+  return value
+    .replace(/\b((?:rtsp|rtsps|http|https):\/\/)([^/@\s]+)@/gi, '$1***:***@')
+    .replace(/([?&](?:password|passwd|pwd|token|secret|api[_-]?key)=)([^&#\s]+)/gi, '$1***');
+}
 
 function getVLCPath() {
   switch (process.platform) {
@@ -32,7 +38,6 @@ function createWindow() {
   });
 
   const startUrl = process.env.ELECTRON_START_URL || `file://${path.join(__dirname, 'build', 'index.html')}`;
-
   mainWindow.loadURL(startUrl);
 
   if (process.env.ELECTRON_START_URL) {
@@ -40,42 +45,30 @@ function createWindow() {
   }
 }
 
-// When the app is ready, create the window
 app.whenReady().then(createWindow);
 
-// Quit when all windows are closed.
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
 
-// On macOS, recreate the window when the dock icon is clicked
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-// IPC handler for getting camera configuration
 ipcMain.on('get-camera-config', (event) => {
   try {
     let config = '';
-    if (fs.existsSync(configPath)) {
-      config = fs.readFileSync(configPath, 'utf8');
-    }
+    if (fs.existsSync(configPath)) config = fs.readFileSync(configPath, 'utf8');
     event.reply('get-camera-config-reply', config);
   } catch (error) {
     event.reply('get-camera-config-reply', '{}');
   }
 });
 
-// IPC handler for saving camera configuration
 ipcMain.on('save-camera-config', (event, config) => {
   try {
     console.log(`Received save-camera-config request at ${new Date().toISOString()}`);
 
-    // Parse the new config data
     let newConfig = {};
     if (typeof config === 'string') {
       newConfig = JSON.parse(config);
@@ -83,17 +76,15 @@ ipcMain.on('save-camera-config', (event, config) => {
       newConfig = config;
     }
 
-    console.log('Saving camera configuration to file:', JSON.stringify(newConfig, null, 2));
-    console.log('Collections in new config:', Object.keys(newConfig));
+    // Never log the config body: it can contain RTSP usernames/passwords.
+    console.log('Saving camera configuration. Collections:', Object.keys(newConfig));
     console.log('Configuration file path:', configPath);
 
-    // Create backup of existing configuration
     if (fs.existsSync(configPath)) {
       const backupPath = `${configPath}.backup`;
       fs.copyFileSync(configPath, backupPath);
       console.log(`Created backup at: ${backupPath}`);
 
-      // Read the existing config for comparison
       try {
         const existingData = fs.readFileSync(configPath, 'utf8');
         const existingConfig = JSON.parse(existingData);
@@ -105,11 +96,8 @@ ipcMain.on('save-camera-config', (event, config) => {
       console.log('No existing configuration file to backup');
     }
 
-    // Write the new config directly to file without merging
-    // This ensures that deleted collections are actually removed from the file
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2));
 
-    // Verify the file was written correctly
     try {
       const verifyData = fs.readFileSync(configPath, 'utf8');
       const verifyConfig = JSON.parse(verifyData);
@@ -120,24 +108,18 @@ ipcMain.on('save-camera-config', (event, config) => {
 
     console.log('Camera configuration saved successfully to:', configPath);
     event.reply('save-camera-config-reply', { success: true });
-
-    // Also send the generic success event for compatibility
     event.reply('camera-config-saved');
   } catch (error) {
     console.error('Error saving camera configuration:', error);
     event.reply('save-camera-config-reply', { success: false, error: error.message });
-
-    // Also send the generic error event for compatibility
     event.reply('camera-config-error', error.message);
   }
 });
 
-// Delete collection handler
 ipcMain.handle('delete-collection', async (_, collectionId) => {
   try {
     console.log(`Deleting collection with ID: ${collectionId}`);
 
-    // Read the current configuration
     if (!fs.existsSync(configPath)) {
       console.error('Configuration file not found at:', configPath);
       return { success: false, error: 'Configuration file not found' };
@@ -149,15 +131,7 @@ ipcMain.handle('delete-collection', async (_, collectionId) => {
       return { success: false, error: 'Configuration file is empty' };
     }
 
-    // Log the configuration path being used
     console.log(`Using configuration file at: ${configPath}`);
-
-    // The collection ID is passed, but we need to find the collection name
-    // to remove it from the configuration
-    // This is handled in the cameraStore.js deleteCollection function
-
-    // Return success - the actual deletion from the JSON file happens in the store
-    // when it calls saveCameraConfig() after updating the state
     return { success: true };
   } catch (error) {
     console.error('Error deleting collection:', error);
@@ -165,7 +139,6 @@ ipcMain.handle('delete-collection', async (_, collectionId) => {
   }
 });
 
-// Load camera configuration
 ipcMain.on('load-camera-config', (event) => {
   try {
     if (fs.existsSync(configPath)) {
@@ -193,7 +166,6 @@ ipcMain.on('load-camera-config', (event) => {
   }
 });
 
-// Handle starting VLC stream
 ipcMain.handle('start-vlc-stream', async (_, streamUrl) => {
   try {
     if (typeof streamUrl !== 'string' || !streamUrl.trim()) {
@@ -222,7 +194,7 @@ ipcMain.handle('start-vlc-stream', async (_, streamUrl) => {
       '--quiet',
     ];
 
-    console.log(`Starting VLC with command: ${vlcPath} ${args.join(' ')}`);
+    console.log(`Starting VLC: ${vlcPath} ${redactUrlForLog(trimmedUrl)}`);
 
     vlcProcess = spawn(vlcPath, args, {
       detached: false,
@@ -231,7 +203,6 @@ ipcMain.handle('start-vlc-stream', async (_, streamUrl) => {
 
     vlcProcess.on('error', (err) => {
       console.error('Failed to start VLC:', err);
-      return { success: false, error: err.message };
     });
 
     vlcProcess.on('exit', (code) => {
@@ -246,7 +217,6 @@ ipcMain.handle('start-vlc-stream', async (_, streamUrl) => {
   }
 });
 
-// Handle stopping VLC stream
 ipcMain.handle('stop-vlc-stream', async () => {
   try {
     if (vlcProcess) {
@@ -260,9 +230,6 @@ ipcMain.handle('stop-vlc-stream', async () => {
   }
 });
 
-// Ensure VLC process is killed when app exits
 app.on('before-quit', () => {
-  if (vlcProcess) {
-    vlcProcess.kill();
-  }
+  if (vlcProcess) vlcProcess.kill();
 });
