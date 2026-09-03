@@ -14,8 +14,6 @@ except Exception:
 logger = logging.getLogger(__name__)
 
 # Standard COCO names plus custom names used by security-trained YOLO weights.
-# The previous implementation checked only generic `vehicle` and `bag`, which means normal
-# Ultralytics COCO detections such as car/truck/bus/backpack/handbag never reached Tier 2.
 SEMANTIC_CLASSES = {
     "person",
     "bicycle",
@@ -43,13 +41,11 @@ SEMANTIC_CLASSES = {
 
 
 class CascadedAIService:
-    """
-    Realtime cascaded pipeline.
+    """Realtime YOLO -> optional semantic-verification pipeline.
 
-    Tier 1: YOLO26 + per-camera tracking.
-    Tier 2: optional PaliGemma ONNX region analysis.
-
-    Tier 2 enriches a YOLO proposal; it never silently replaces geometry/tracking metadata.
+    Tier 1 owns geometry/tracking. Tier 2 enriches exact YOLO proposals and never silently
+    replaces their geometry or identity. Hard-example collection runs only after Tier 2 so the
+    review queue captures semantic-verifier failures as well as uncertain YOLO proposals.
     """
 
     def __init__(self):
@@ -72,6 +68,15 @@ class CascadedAIService:
         label = str(detection.get("class", "")).strip().lower()
         return self.semantic_all_classes or label in SEMANTIC_CLASSES
 
+    @staticmethod
+    def _collect_hard_example(frame, metadata: dict, stream_id: Optional[str]) -> None:
+        if hard_example_collector is None:
+            return
+        try:
+            hard_example_collector.consider(frame, metadata, stream_id=stream_id)
+        except Exception as exc:
+            logger.debug("Hard-example collection skipped: %s", exc)
+
     def process_frame(
         self,
         frame,
@@ -85,23 +90,21 @@ class CascadedAIService:
         annotated_frame, metadata = self.yolo.process_frame(frame, stream_id=stream_id)
         metadata = metadata if isinstance(metadata, dict) else {"detections": []}
 
-        # Feed uncertain examples into a review queue only when explicitly enabled.
-        if hard_example_collector is not None:
-            try:
-                hard_example_collector.consider(frame, metadata, stream_id=stream_id)
-            except Exception as exc:
-                logger.debug("Hard-example collection skipped: %s", exc)
-
         if metadata.get("skipped", False):
             metadata["tier2_active"] = bool(getattr(self.gemma, "initialized", False))
             metadata["tier2_backend"] = "paligemma_onnx" if metadata["tier2_active"] else "unavailable"
+            metadata["tier2_candidate_count"] = 0
+            metadata["tier2_error_count"] = 0
             metadata["total_latency_ms"] = (time.perf_counter() - start_total) * 1000.0
+            # Do not collect cached/skipped frames; it would duplicate the same proposal.
             return annotated_frame, metadata
 
         detections = metadata.get("detections", [])
         if not isinstance(detections, list) or not detections:
             metadata["tier2_active"] = bool(getattr(self.gemma, "initialized", False))
             metadata["tier2_backend"] = "paligemma_onnx" if metadata["tier2_active"] else "unavailable"
+            metadata["tier2_candidate_count"] = 0
+            metadata["tier2_error_count"] = 0
             metadata["total_latency_ms"] = (time.perf_counter() - start_total) * 1000.0
             return annotated_frame, metadata
 
@@ -117,7 +120,6 @@ class CascadedAIService:
                     "box": list(bbox),
                     "label": str(det.get("class", "object")),
                     "id": det.get("id"),
-                    # Index is the authoritative merge key. Track IDs can be None and can change.
                     "detection_index": detection_index,
                 }
             )
@@ -161,6 +163,8 @@ class CascadedAIService:
         metadata["tier2_candidate_count"] = len(regions_to_analyze)
         metadata["tier2_error_count"] = tier2_errors
         metadata["total_latency_ms"] = (time.perf_counter() - start_total) * 1000.0
+
+        self._collect_hard_example(frame, metadata, stream_id)
         return annotated_frame, metadata
 
 
