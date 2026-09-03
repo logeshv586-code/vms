@@ -55,6 +55,13 @@ class AISourceContracts(unittest.TestCase):
         requirements = source("requirements.txt")
         self.assertIn("llama-cpp-python>=0.3.25", requirements)
 
+    def test_webrtc_crypto_stack_is_compatible_with_current_aiortc(self):
+        requirements = source("requirements.txt")
+        self.assertIn("aiortc>=1.15.0,<1.16.0", requirements)
+        self.assertIn("av>=14.0.0,<18.0.0", requirements)
+        self.assertIn("cryptography>=44.0.0,<51.0.0", requirements)
+        self.assertIn("pyOpenSSL>=25.0.0,<27.0.0", requirements)
+
     def test_yolo_tracking_is_camera_isolated(self):
         text = source("services/yolo26_engine.py")
         self.assertIn("class _StreamState", text)
