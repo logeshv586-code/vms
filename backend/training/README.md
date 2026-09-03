@@ -1,4 +1,4 @@
-# VMS Realtime Detection Training Workflow
+# VMS Realtime Detection Training & Validation Workflow
 
 The production camera feed should **not** train YOLO directly from its own predictions. That creates a feedback loop where false positives become labels and accuracy degrades.
 
@@ -10,9 +10,11 @@ Enable collection only on an approved test/development deployment:
 VMS_COLLECT_HARD_EXAMPLES=true
 VMS_HARD_EXAMPLE_INTERVAL_SECONDS=10
 VMS_HARD_EXAMPLE_MAX_PER_DAY=500
+VMS_HARD_EXAMPLE_RETENTION_DAYS=30
+VMS_HARD_EXAMPLE_MAX_STORAGE_GB=20
 ```
 
-The runtime saves uncertain frames and proposal metadata under:
+The runtime saves uncertain frames and post-Tier-2 proposal metadata under:
 
 ```text
 backend/training_data/review_queue/YYYYMMDD/<camera>/
@@ -28,7 +30,7 @@ Each `.json` sidecar is marked:
 }
 ```
 
-Do not use those proposal labels as ground truth.
+Do not use those proposal labels as ground truth. Retention cleanup is automatic and bounded by both age and total queue storage.
 
 ## 2. Human review and annotation
 
@@ -106,6 +108,44 @@ Do not promote a model based only on training mAP. Compare it to the currently d
 
 For behavior rules, separately score event-level precision/recall on timestamped clips. Gemma should be evaluated as a verifier: correct validation/rejection rate, timeout rate, and false-confirmation rate.
 
+### Live multi-camera soak / GPU benchmark
+
+Run this on the actual VMS machine while the configured cameras are active:
+
+```bash
+python backend/tools/validate_runtime.py \
+  --base-url http://127.0.0.1:8000 \
+  --duration 900 \
+  --interval 5 \
+  --output vms_runtime_validation.json \
+  --fail-on-errors
+```
+
+The report records API availability/latency, observed camera streams, detection activity, and NVIDIA GPU memory/utilization/temperature when `nvidia-smi` is available. A GitHub runner cannot replace this test because it does not have the deployment cameras or RTX GPU.
+
+### Face-recognition threshold calibration
+
+Create labelled genuine/impostor pairs from the **same embedding backend and real camera conditions**. Each pair needs a measured distance and the correct identity relationship:
+
+```json
+[
+  {"distance": 0.41, "same_identity": true},
+  {"distance": 0.63, "same_identity": false}
+]
+```
+
+Then calibrate instead of guessing a threshold:
+
+```bash
+python backend/training/calibrate_face_threshold.py \
+  --pairs reviewed_face_pairs.json \
+  --objective balanced_accuracy \
+  --max-far 0.01 \
+  --output face_threshold_calibration.json
+```
+
+Apply the reviewed result with `VMS_FACE_RECOGNITION_TOLERANCE`.
+
 ## 6. Promote safely
 
 Deploy the candidate weights with:
@@ -129,6 +169,8 @@ VMS_GEMMA_MODEL_PATH=/absolute/path/gemma-4-E4B-it-Q4_K_M.gguf
 VMS_GEMMA_MMPROJ_PATH=/absolute/path/mmproj-gemma-4-E4B-it-BF16.gguf
 VMS_GEMMA_GPU_LAYERS=-1
 VMS_GEMMA_TIMEOUT_SECONDS=45
+
+VMS_CORS_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
 ```
 
 Tune thresholds from the held-out validation set rather than by visual guesswork on one camera.
