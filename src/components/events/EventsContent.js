@@ -7,6 +7,8 @@ import CurrentEvents from './CurrentEvents';
 import SearchEvents from './SearchEvents';
 import PTZAutoTour from './PTZAutoTour';
 import PTZAutoTrack from './PTZAutoTrack';
+import LiveMonitoringRules from './LiveMonitoringRules';
+import EventParametersGuide from './EventParametersGuide';
 import { useUserStore } from '../../store/userStore';
 
 function EventsContent({ selectedMenu }) {
@@ -22,7 +24,9 @@ function EventsContent({ selectedMenu }) {
       'search-events',
       'current-events',
       'ptz-auto-tour',
-      'ptz-auto-track'
+      'ptz-auto-track',
+      'live-monitoring-rules',
+      'event-parameters'
     ]);
 
     if (selectedMenu === 'detection-rule-set' && !isSuperAdmin) {
@@ -43,19 +47,15 @@ function EventsContent({ selectedMenu }) {
             <p>You do not have permission to access Detection Rule Set.</p>
           </div>
         );
-      case 'events-statistics':
-        return <EventStatistics />;
-      case 'rules-on-camera':
-        return <RulesOnCamera />;
-      case 'ptz-auto-tour':
-        return <PTZAutoTour />;
-      case 'ptz-auto-track':
-        return <PTZAutoTrack />;
-      case 'search-events':
-        return <SearchEvents />;
+      case 'events-statistics': return <EventStatistics />;
+      case 'rules-on-camera': return <RulesOnCamera />;
+      case 'ptz-auto-tour': return <PTZAutoTour />;
+      case 'ptz-auto-track': return <PTZAutoTrack />;
+      case 'live-monitoring-rules': return <LiveMonitoringRules />;
+      case 'event-parameters': return <EventParametersGuide />;
+      case 'search-events': return <SearchEvents />;
       case 'current-events':
-      default:
-        return <CurrentEvents />;
+      default: return <CurrentEvents />;
     }
   };
 
