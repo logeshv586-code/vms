@@ -1,173 +1,78 @@
 .camera-rule-table {
-  background-color: #132447f0;
-  border-radius: 8px;
-  overflow: hidden;
+  background: #ffffff;
+  border-radius: 12px;
   margin-top: 20px;
-  color: #f0f0f0;
-  padding: 20px;
+  color: #0f172a;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
 }
 
 .zone-selector-container {
-  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 360px);
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 16px;
 }
-
-.zone-selector-container h3 {
-  font-size: 14px;
-  margin-bottom: 6px;
-  color: #666666;
-  font-weight: 600;
-}
-
-.zone-dropdown {
-  max-width: 100%;
-  width: 100%;
-}
-
+.zone-selector-container h3 { font-size: 14px; margin: 0 0 4px; color: #0f172a; font-weight: 700; }
+.zone-selector-container p { margin: 0; font-size: 11px; line-height: 1.5; color: #64748b; }
 .zone-select {
   width: 100%;
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
-  background-color: #ffffff;
-  color: #666666;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
   font-size: 12px;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 12px;
 }
 
-/* Zone cameras container */
-.zone-cameras-container {
-  margin-top: 12px;
-}
+.zone-cameras-container { margin-top: 12px; }
+.zone-camera-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.zone-camera-heading h3 { font-size: 13px; margin: 0; color: #334155; }
+.zone-camera-heading > span { font-size: 10px; color: #64748b; background: #f1f5f9; border-radius: 999px; padding: 4px 8px; }
 
-.zone-cameras-container h3 {
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: #666666;
-  font-weight: 600;
-}
-
-/* Camera rules list */
-.camera-rules-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
+.camera-rules-list { display: flex; flex-direction: column; gap: 10px; }
 .camera-rule-item {
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  padding: 8px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 11px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border: 1px solid #e0e0e0;
+  gap: 9px;
+  border: 1px solid #e2e8f0;
 }
+.camera-rule-item.camera-selected { border-color: #93c5fd; box-shadow: inset 3px 0 0 #2563eb; background: #f8fbff; }
+.camera-rule-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.camera-select-label { display: flex; align-items: center; gap: 9px; color: #0f172a; font-size: 12px; font-weight: 700; cursor: pointer; }
+.camera-select-label input { width: 15px; height: 15px; accent-color: #2563eb; }
+.camera-active-count { font-size: 9px; font-weight: 800; color: #64748b; border: 1px solid #cbd5e1; background: #fff; padding: 4px 7px; border-radius: 999px; }
+.camera-active-count.has-rules { color: #047857; border-color: #6ee7b7; background: #ecfdf5; }
 
-.camera-name {
-  display: flex;
-  align-items: center;
-}
-
-.camera-name span {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666666;
-}
-
-.applied-rules {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.applied-rules h4 {
-  font-size: 11px;
-  color: #666666;
-  margin: 0;
-  font-weight: 600;
-}
-
-/* Detection checkboxes */
-.detection-checkboxes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.detection-checkbox-container {
-  display: flex;
-  align-items: center;
-}
-
+.detection-checkboxes { display: flex; flex-wrap: wrap; gap: 7px; }
 .detection-checkbox-label {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  border: 1px solid #dbe3ed;
+  background: #fff;
   cursor: pointer;
-  background-color: #ffffff;
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
-  transition: all 0.2s;
+  transition: border-color .15s, background .15s, box-shadow .15s;
 }
-
-.detection-checkbox-label:hover {
-  background-color: #f0f4f8;
-  border-color: #ccc;
+.detection-checkbox-label.rule-off { color: #64748b; background: #f8fafc; }
+.detection-checkbox-label.rule-on {
+  border-color: var(--camera-rule-color);
+  background: color-mix(in srgb, var(--camera-rule-color) 7%, white);
+  box-shadow: inset 2px 0 0 var(--camera-rule-color);
 }
+.detection-checkbox { width: 14px; height: 14px; margin: 0; cursor: pointer; accent-color: var(--camera-rule-color, #2563eb); }
+.detection-name { font-size: 10px; color: inherit; font-weight: 600; white-space: nowrap; }
+.camera-rule-state { font-size: 8px; font-weight: 900; letter-spacing: .04em; color: #64748b; }
+.rule-on .camera-rule-state { color: var(--camera-rule-color); }
 
-.detection-checkbox {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  cursor: pointer;
-  accent-color: #6366f1;
-}
+.no-cameras { text-align: center; padding: 30px; color: #64748b; font-style: italic; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }
 
-.detection-name {
-  font-size: 13px;
-  color: #333333;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* Tooltip */
-.detection-tooltip {
-  position: absolute;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  z-index: 1000;
-  pointer-events: none;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transform: translateY(5px);
-}
-
-.detection-tooltip::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 0 5px 5px;
-  border-style: solid;
-  border-color: transparent transparent rgba(0, 0, 0, 0.8);
-}
-
-.no-cameras {
-  text-align: center;
-  padding: 30px;
-  color: #888;
-  font-style: italic;
-  background-color: #2c2c2c;
-  border-radius: 8px;
+@media (max-width: 900px) {
+  .zone-selector-container { grid-template-columns: 1fr; }
 }
