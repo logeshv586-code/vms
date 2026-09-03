@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import json
 import os
 import logging
+import re
 import threading
 from typing import List, Dict, Optional, Any
 
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 WORKSPACE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 EVENTS_CONFIG_PATH = os.path.join(WORKSPACE_ROOT, "events_configuration.json")
 CAMERA_RULES_PATH = os.path.join(WORKSPACE_ROOT, "camera_rules.json")
+CAMERA_CONFIG_PATH = os.path.join(WORKSPACE_ROOT, "backend", "data", "camera_configuration.json")
 
 router = APIRouter(prefix="/api/augment", tags=["camera_rules"])
 _CAMERA_RULES_LOCK = threading.RLock()
@@ -75,15 +77,63 @@ def _enabled_rule_ids() -> set:
     }
 
 
+def _normalize_camera_id(value: Any) -> str:
+    text = str(value or "").lower()
+    text = re.sub(r"^camera[-_]", "", text)
+    return re.sub(r"[^a-z0-9]", "", text)
+
+
+def _camera_aliases_from_config() -> Dict[str, set]:
+    """Map normalized physical-camera identity to all UI/runtime aliases."""
+    output: Dict[str, set] = {}
+    if not os.path.isfile(CAMERA_CONFIG_PATH):
+        return output
+    try:
+        with open(CAMERA_CONFIG_PATH, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        if not isinstance(data, dict):
+            return output
+        for collection, cameras in data.items():
+            if not isinstance(cameras, dict):
+                continue
+            for ip in cameras:
+                slug = re.sub(r"[^a-z0-9]+", "-", str(collection).lower()).strip("-")
+                frontend_id = f"camera-{slug}-{str(ip).replace('.', '-')}"
+                stream_id = f"{collection}_{ip}"
+                display_name = f"{collection} ({ip})"
+                aliases = {frontend_id, stream_id, display_name, str(ip)}
+                key = _normalize_camera_id(stream_id)
+                output[key] = aliases
+    except Exception as exc:
+        logger.warning("Unable to expand camera aliases: %s", exc)
+    return output
+
+
+def _expanded_camera_rules(camera_rules: Dict[str, Any]) -> Dict[str, List[int]]:
+    """Return compatibility aliases without changing the persisted canonical data."""
+    expanded: Dict[str, List[int]] = {}
+    physical_aliases = _camera_aliases_from_config()
+    for stored_id, rule_ids in (camera_rules or {}).items():
+        ids = [int(value) for value in (rule_ids or [])]
+        expanded[str(stored_id)] = ids
+        normalized = _normalize_camera_id(stored_id)
+        aliases = physical_aliases.get(normalized)
+        if aliases:
+            for alias in aliases:
+                expanded[alias] = ids
+    return expanded
+
+
 @router.get("/camera-rules")
 async def get_camera_rules():
     try:
         camera_rules_data = _load_camera_rules()
         enabled_ids = sorted(_enabled_rule_ids()) if os.path.exists(EVENTS_CONFIG_PATH) else []
+        raw_rules = camera_rules_data.get("camera_rules", {})
         return {
             "success": True,
             "data": {
-                "cameraRules": camera_rules_data.get("camera_rules", {}),
+                "cameraRules": _expanded_camera_rules(raw_rules),
                 "globalEnabledRuleIds": enabled_ids,
             },
             "message": "Camera rules retrieved successfully",
@@ -118,7 +168,6 @@ async def apply_camera_rules(request: CameraRuleRequest):
             camera_rules_data = _load_camera_rules()
             camera_rules = camera_rules_data.get("camera_rules", {})
             for camera_id in camera_ids:
-                # Empty list intentionally means all detection is OFF for this camera.
                 camera_rules[camera_id] = requested_rule_ids
             camera_rules_data["camera_rules"] = camera_rules
             _atomic_write(CAMERA_RULES_PATH, camera_rules_data)
@@ -128,7 +177,7 @@ async def apply_camera_rules(request: CameraRuleRequest):
         return {
             "success": True,
             "data": {
-                "cameraRules": camera_rules,
+                "cameraRules": _expanded_camera_rules(camera_rules),
                 "globalEnabledRuleIds": sorted(enabled_rule_ids),
             },
             "message": f"Rules applied successfully to {len(camera_ids)} cameras",
