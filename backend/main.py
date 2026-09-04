@@ -24,10 +24,16 @@ from urllib.parse import urlsplit
 import cv2
 import uvicorn
 
-import main_legacy as legacy
-from routes import camera_ai
-from services.camera_ai_preferences import get_camera_ai_preferences
-from services.event_evidence import event_evidence_service
+try:
+    import main_legacy as legacy
+    from routes import camera_ai
+    from services.camera_ai_preferences import get_camera_ai_preferences
+    from services.event_evidence import event_evidence_service
+except ImportError:  # Support package-style imports such as ``backend.main``.
+    from backend import main_legacy as legacy
+    from backend.routes import camera_ai
+    from backend.services.camera_ai_preferences import get_camera_ai_preferences
+    from backend.services.event_evidence import event_evidence_service
 
 logger = logging.getLogger(__name__)
 
@@ -173,11 +179,15 @@ class HardenedRTSPStream(legacy.RTSPStream):
                 detections_data["frame_height"] = height
                 detections_data["processed_fps"] = ai_fps
 
-                # Register the annotated frame before event evaluation so the
-                # current detection belongs to the pre-event ring buffer.
-                event_evidence_service.register_frame(self.stream_id, annotated_frame, detections_data)
-
+                # PatternEngine enriches each detection with zone membership.
+                # Deterministic events are persisted inside PatternEngine only.
                 events = legacy.pattern_engine.process_detections(self.stream_id, detections_data)
+
+                # Register immediately after PatternEngine so the exact trigger
+                # frame is captured with bbox/centre/track and zone metadata.
+                # If a deterministic event was just persisted, register_frame
+                # appends this frame to its already-created proof capture.
+                event_evidence_service.register_frame(self.stream_id, annotated_frame, detections_data)
 
                 # PatternEngine already persists deterministic (non-L3) events.
                 # Only Layer-3 candidates are handled here; this removes the old
@@ -281,8 +291,12 @@ async def get_detection_schema():
 # Re-export the application and common runtime objects for existing imports.
 app = legacy.app
 active_streams = legacy.active_streams
-webcam_stream = legacy.webcam_stream
 get_stream_by_id = legacy.get_stream_by_id
+
+
+def __getattr__(name):
+    """Forward legacy module attributes so existing imports remain compatible."""
+    return getattr(legacy, name)
 
 
 if __name__ == "__main__":
