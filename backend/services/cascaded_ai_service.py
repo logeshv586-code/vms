@@ -58,6 +58,23 @@ class CascadedAIService:
         self.semantic_min_conf = max(0.01, min(0.99, self.semantic_min_conf))
         self.semantic_all_classes = os.getenv("VMS_SEMANTIC_ALL_CLASSES", "false").lower() == "true"
 
+    @staticmethod
+    def _label(detection: dict) -> str:
+        return str(
+            detection.get("class_name")
+            or detection.get("class")
+            or detection.get("label")
+            or ""
+        ).strip()
+
+    @staticmethod
+    def _track_id(detection: dict):
+        return detection.get("track_id", detection.get("id"))
+
+    @staticmethod
+    def _bbox(detection: dict):
+        return detection.get("bbox") or detection.get("box")
+
     def _semantic_candidate(self, detection: dict) -> bool:
         try:
             confidence = float(detection.get("confidence", 0.0))
@@ -65,7 +82,7 @@ class CascadedAIService:
             return False
         if confidence < self.semantic_min_conf:
             return False
-        label = str(detection.get("class", "")).strip().lower()
+        label = self._label(detection).lower()
         return self.semantic_all_classes or label in SEMANTIC_CLASSES
 
     @staticmethod
@@ -112,14 +129,14 @@ class CascadedAIService:
         for detection_index, det in enumerate(detections):
             if not isinstance(det, dict) or not self._semantic_candidate(det):
                 continue
-            bbox = det.get("bbox")
+            bbox = self._bbox(det)
             if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
                 continue
             regions_to_analyze.append(
                 {
                     "box": list(bbox),
-                    "label": str(det.get("class", "object")),
-                    "id": det.get("id"),
+                    "label": self._label(det) or "object",
+                    "id": self._track_id(det),
                     "detection_index": detection_index,
                 }
             )
