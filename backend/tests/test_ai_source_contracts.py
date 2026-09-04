@@ -42,6 +42,7 @@ class AISourceContracts(unittest.TestCase):
             "routes/camera_ai.py",
             "routes/camera_rules.py",
             "routes/camera_zones.py",
+            "routes/vehicle_monitoring.py",
             "tools/validate_runtime.py",
             "training/train_yolo.py",
             "training/calibrate_face_threshold.py",
@@ -90,8 +91,6 @@ class AISourceContracts(unittest.TestCase):
             '"schema_version": "vms-detection-1"',
         ):
             self.assertIn(field, text)
-        # Transitional aliases keep existing PatternEngine/UI consumers working
-        # while every new integration can use the canonical contract.
         self.assertIn('"box": bbox', text)
         self.assertIn('"label": label', text)
         self.assertIn('"id": track_id', text)
@@ -210,7 +209,7 @@ class AISourceContracts(unittest.TestCase):
             if isinstance(node, ast.FunctionDef) and node.name == "_ai_processing_loop"
         )
         method_text = ast.get_source_segment(runtime, method)
-        self.assertNotIn("trigger_alert_api", method_text)
+        self.assertNotIn(".trigger_alert_api(", method_text)
         self.assertIn("PatternEngine already persists deterministic", method_text)
 
     def test_event_evidence_is_annotated_buffered_and_validated(self):
@@ -255,6 +254,18 @@ class AISourceContracts(unittest.TestCase):
         rule = next(item for item in config["rules"] if item["id"] == 22)
         self.assertEqual(rule["name"], "Vehicle Monitoring")
         self.assertTrue(rule["enabled"])
+
+    def test_vehicle_monitoring_uses_real_lazy_alpr_and_central_events(self):
+        text = source("routes/vehicle_monitoring.py")
+        self.assertIn("def _lazy_init_alpr", text)
+        self.assertIn("from sort.sort import Sort as _Sort", text)
+        self.assertNotIn("mock tracker", text.lower())
+        self.assertIn("util_get_car(plate_detection, track_ids)", text)
+        self.assertIn("util_read_license_plate(threshold)", text)
+        self.assertIn("pattern_engine.trigger_alert_api(", text)
+        self.assertIn('"type": "Vehicle Monitoring"', text)
+        self.assertIn("os.replace(temp_path, self._events_file)", text)
+        self.assertIn("A configured stable stream_id is required", text)
 
     def test_ai_detection_panel_has_center_point_overlay(self):
         wrapper = root_source("src/components/events/AIDetectionTab.js")
