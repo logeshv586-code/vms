@@ -13,6 +13,8 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
+from services.camera_ai_preferences import get_camera_ai_preferences
+
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data"))
 CAMERA_ZONES_PATH = os.path.join(DATA_DIR, "camera_zones.json")
 logger = logging.getLogger(__name__)
@@ -48,11 +50,12 @@ class _StreamState:
     last_metadata: Dict[str, Any] = field(default_factory=lambda: {"detections": [], "counts": {}})
     prev_gray: Optional[np.ndarray] = None
     last_seen_monotonic: float = field(default_factory=time.monotonic)
+    tracker_name: Optional[str] = None
     lock: threading.RLock = field(default_factory=threading.RLock)
 
 
 class YOLO26Engine:
-    """Realtime YOLO + ByteTrack engine with camera-isolated tracker state."""
+    """Realtime YOLO + ByteTrack/BoT-SORT engine with camera-isolated state."""
 
     _instance = None
 
@@ -71,6 +74,8 @@ class YOLO26Engine:
         self.confidence = max(0.01, min(0.99, _env_float("VMS_YOLO_CONF", 0.25)))
         self.iou = max(0.01, min(0.99, _env_float("VMS_YOLO_IOU", 0.55)))
         self.tracker = os.getenv("VMS_YOLO_TRACKER", "bytetrack.yaml")
+        if self.tracker not in {"bytetrack.yaml", "botsort.yaml"}:
+            self.tracker = "bytetrack.yaml"
         self.inactive_stream_ttl = max(30, _env_int("VMS_YOLO_STREAM_TTL_SECONDS", 300))
         self.cleanup_interval = max(10, _env_int("VMS_YOLO_CLEANUP_INTERVAL_SECONDS", 30))
         self._last_cleanup = 0.0
@@ -89,11 +94,12 @@ class YOLO26Engine:
             self._load_zones(force=True)
             self._initialized = True
             logger.info(
-                "YOLO initialized: model=%s device=%s conf=%.2f iou=%.2f skip=%s ttl=%ss",
+                "YOLO initialized: model=%s device=%s conf=%.2f iou=%.2f tracker=%s skip=%s ttl=%ss",
                 self.model_path,
                 self.device,
                 self.confidence,
                 self.iou,
+                self.tracker,
                 self.skip_n_frames,
                 self.inactive_stream_ttl,
             )
@@ -116,6 +122,20 @@ class YOLO26Engine:
         model = YOLO(self.model_path)
         model.to(self.device)
         return model
+
+    def _detector_settings(self, stream_id: Optional[str]) -> Dict[str, Any]:
+        prefs = get_camera_ai_preferences(stream_id or "default")
+        confidence = prefs.get("confidence")
+        iou = prefs.get("iou")
+        tracker = prefs.get("tracker") or self.tracker
+        skip_frames = prefs.get("skip_frames")
+        return {
+            "confidence": self.confidence if confidence is None else max(0.01, min(0.99, float(confidence))),
+            "iou": self.iou if iou is None else max(0.01, min(0.99, float(iou))),
+            "tracker": tracker if tracker in {"bytetrack.yaml", "botsort.yaml"} else self.tracker,
+            "skip_frames": self.skip_n_frames if skip_frames is None else max(0, int(skip_frames)),
+            "ai_fps": float(prefs.get("ai_fps", 4.0) or 4.0),
+        }
 
     def _cleanup_inactive_streams(self, keep_key: Optional[str] = None) -> None:
         now = time.monotonic()
@@ -145,8 +165,8 @@ class YOLO26Engine:
                 model = self.model
                 self._default_model_claimed = True
             else:
-                # Ultralytics persist=True retains predictor/tracker state; use a
-                # distinct instance for every unrelated camera.
+                # persist=True retains tracker state. A separate model instance
+                # prevents IDs and trajectories leaking between camera feeds.
                 model = self._create_model()
             state = _StreamState(model=model)
             self._streams[key] = state
@@ -198,7 +218,7 @@ class YOLO26Engine:
                 if len(center) < 2:
                     continue
                 cx, cy = int(float(center[0]) * width), int(float(center[1]) * height)
-                radius_px = max(1, int(radius * width))
+                radius_px = max(1, int(radius * min(width, height)))
                 cv2.circle(image, (cx, cy), radius_px, color, 2)
                 cv2.putText(image, name, (max(0, cx - radius_px), max(15, cy - radius_px - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
                 continue
@@ -213,32 +233,53 @@ class YOLO26Engine:
             cv2.putText(image, name, (int(points[0][0][0]), max(15, int(points[0][0][1]) - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
     @staticmethod
-    def _draw_cached_detections(image: np.ndarray, detections):
+    def _draw_detection(image: np.ndarray, detection: Dict[str, Any]) -> None:
+        bbox = detection.get("bbox") or detection.get("box") or []
+        if len(bbox) != 4:
+            return
+        x1, y1, x2, y2 = map(int, bbox)
+        label = str(detection.get("class_name") or detection.get("class") or detection.get("label") or "object")
+        track_id = detection.get("track_id", detection.get("id"))
+        try:
+            confidence = float(detection.get("confidence", 0.0))
+        except (TypeError, ValueError):
+            confidence = 0.0
+        color = (0, 212, 255) if label == "person" else (0, 255, 0)
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
+        center = detection.get("centroid") or detection.get("center")
+        if isinstance(center, (list, tuple)) and len(center) >= 2:
+            cv2.circle(image, (int(center[0]), int(center[1])), 5, color, -1, cv2.LINE_AA)
+            cv2.circle(image, (int(center[0]), int(center[1])), 9, (255, 255, 255), 1, cv2.LINE_AA)
+        id_text = f" #{track_id}" if track_id is not None else ""
+        text = f"{label}{id_text} {confidence * 100:.0f}%"
+        cv2.putText(image, text, (x1, max(15, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
+
+    @classmethod
+    def _draw_cached_detections(cls, image: np.ndarray, detections):
         for detection in detections:
-            bbox = detection.get("bbox", [])
-            if len(bbox) != 4:
-                continue
-            x1, y1, x2, y2 = map(int, bbox)
-            label = str(detection.get("class", "object"))
-            track_id = detection.get("id")
-            color = (0, 212, 255) if label == "person" else (0, 255, 0)
-            cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
-            text = f"{label} {track_id}" if track_id is not None else label
-            cv2.putText(image, text, (x1, max(15, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+            if isinstance(detection, dict):
+                cls._draw_detection(image, detection)
 
     def process_frame(self, frame: np.ndarray, persist: bool = True, stream_id: str = None):
         if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
             return frame, {"detections": [], "counts": {}, "error": "invalid_frame"}
 
         self._load_zones()
+        settings = self._detector_settings(stream_id)
         state = self._get_stream_state(stream_id)
+        if state.tracker_name and state.tracker_name != settings["tracker"]:
+            # A persistent Ultralytics predictor keeps its tracker instance. If
+            # the camera preference changes, rebuild only this camera's state.
+            self.reset_stream(stream_id)
+            state = self._get_stream_state(stream_id)
         state.last_seen_monotonic = time.monotonic()
         height, width = frame.shape[:2]
 
         try:
             with state.lock:
                 state.frame_count += 1
-                if persist and self.skip_n_frames > 0 and state.frame_count % (self.skip_n_frames + 1) != 0:
+                skip_frames = int(settings["skip_frames"])
+                if persist and skip_frames > 0 and state.frame_count % (skip_frames + 1) != 0:
                     display_frame = frame.copy()
                     self._draw_cached_detections(display_frame, state.last_metadata.get("detections", []))
                     self._draw_zones(display_frame, stream_id)
@@ -247,17 +288,19 @@ class YOLO26Engine:
                     cached["stream_id"] = stream_id
                     cached["frame_width"] = width
                     cached["frame_height"] = height
+                    cached["detector_settings"] = dict(settings)
                     return display_frame, cached
 
                 results = state.model.track(
                     frame,
                     persist=persist,
-                    tracker=self.tracker,
+                    tracker=settings["tracker"],
                     verbose=False,
-                    conf=self.confidence,
-                    iou=self.iou,
+                    conf=settings["confidence"],
+                    iou=settings["iou"],
                     device=self.device,
                 )
+                state.tracker_name = settings["tracker"]
                 result = results[0]
                 annotated_frame = frame.copy()
                 self._draw_zones(annotated_frame, stream_id)
@@ -280,24 +323,31 @@ class YOLO26Engine:
                         if x2 <= x1 or y2 <= y1:
                             continue
                         cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
-                        color = (0, 212, 255) if label == "person" else (0, 255, 0)
-                        ix1, iy1, ix2, iy2 = map(int, (x1, y1, x2, y2))
-                        cv2.rectangle(annotated_frame, (ix1, iy1), (ix2, iy2), color, 2)
-                        text = f"{label} {track_id}" if track_id is not None else label
-                        cv2.putText(annotated_frame, text, (ix1, max(15, iy1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-                        detections.append(
-                            {
-                                "id": track_id,
-                                "class": label,
-                                "class_id": class_id,
-                                "confidence": confidence,
-                                "bbox": [x1, y1, x2, y2],
-                                "norm_bbox": [x1 / width, y1 / height, x2 / width, y2 / height],
-                                "centroid": [cx, cy],
-                                "norm_centroid": [cx / width, cy / height],
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
-                            }
-                        )
+                        bbox = [x1, y1, x2, y2]
+                        centroid = [cx, cy]
+                        timestamp = datetime.now(timezone.utc).isoformat()
+
+                        # Canonical VMS contract uses track_id/class_name/bbox/
+                        # centroid. Legacy id/class/box/label aliases remain for
+                        # existing PatternEngine and older frontend consumers.
+                        detection = {
+                            "track_id": track_id,
+                            "class_name": label,
+                            "class_id": class_id,
+                            "confidence": confidence,
+                            "bbox": bbox,
+                            "centroid": centroid,
+                            "norm_bbox": [x1 / width, y1 / height, x2 / width, y2 / height],
+                            "norm_centroid": [cx / width, cy / height],
+                            "timestamp": timestamp,
+                            "id": track_id,
+                            "class": label,
+                            "box": bbox,
+                            "label": label,
+                            "center": centroid,
+                        }
+                        self._draw_detection(annotated_frame, detection)
+                        detections.append(detection)
                         counts[label] = counts.get(label, 0) + 1
 
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -322,6 +372,9 @@ class YOLO26Engine:
                     "frame_height": height,
                     "device": self.device,
                     "model": self.model_path,
+                    "tracker": settings["tracker"],
+                    "detector_settings": dict(settings),
+                    "schema_version": "vms-detection-1",
                     "skipped": False,
                 }
                 return annotated_frame, dict(state.last_metadata)
@@ -335,6 +388,7 @@ class YOLO26Engine:
                 "stream_id": stream_id,
                 "frame_width": width,
                 "frame_height": height,
+                "detector_settings": dict(settings),
                 "error": str(exc),
             }
 
@@ -370,6 +424,7 @@ class YOLO26Engine:
             "tracker": self.tracker,
             "active_stream_states": streams,
             "inactive_stream_ttl_seconds": self.inactive_stream_ttl,
+            "detection_schema": "vms-detection-1",
         }
 
     def get_annotated_frame_only(self, frame: np.ndarray, stream_id: str = None):
