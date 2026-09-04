@@ -2,13 +2,14 @@
 
 The original server implementation is preserved in ``main_legacy.py`` so all
 existing APIs, WebRTC routes, archive functions and compatibility endpoints stay
-available.  This entry point applies the production fixes around that server:
+available. This entry point applies the production fixes around that server:
 
 * stable camera IDs for every stream creation path;
 * persisted per-camera 24/7 AI preferences;
 * one event-dispatch path (PatternEngine owns deterministic dispatch);
 * annotated pre/post-event evidence instead of a second raw RTSP recording;
 * Layer-3 candidate pinning so slow validation does not lose the incident;
+* optional evidence-key deduplication for distinct ALPR/structured detections;
 * English-only camera AI preference APIs.
 """
 
@@ -18,7 +19,9 @@ import json
 import logging
 import threading
 import time
+import uuid
 from copy import deepcopy
+from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 import cv2
@@ -49,7 +52,6 @@ def _infer_stream_id(rtsp_url: str) -> str | None:
     if not isinstance(camera_data, dict):
         return None
 
-    # Exact URL match is authoritative.
     for collection_name, cameras in camera_data.items():
         if not isinstance(cameras, dict):
             continue
@@ -57,8 +59,6 @@ def _infer_stream_id(rtsp_url: str) -> str | None:
             if str(configured_url) == str(rtsp_url):
                 return f"{collection_name}_{camera_ip}"
 
-    # Legacy call sites can add harmless transport/query details.  Fall back to
-    # the RTSP hostname without ever logging credentials.
     try:
         hostname = urlsplit(str(rtsp_url)).hostname
     except Exception:
@@ -179,15 +179,13 @@ class HardenedRTSPStream(legacy.RTSPStream):
                 detections_data["frame_height"] = height
                 detections_data["processed_fps"] = ai_fps
 
-                # PatternEngine enriches each detection with zone membership.
-                # Deterministic events are persisted inside PatternEngine only.
                 events = legacy.pattern_engine.process_detections(self.stream_id, detections_data)
 
-                # Register immediately after PatternEngine so the exact trigger
-                # frame is captured with bbox/centre/track and zone metadata.
-                # If a deterministic event was just persisted, register_frame
-                # appends this frame to its already-created proof capture.
-                event_evidence_service.register_frame(self.stream_id, annotated_frame, detections_data)
+                event_evidence_service.register_frame(
+                    self.stream_id,
+                    annotated_frame,
+                    detections_data,
+                )
 
                 # PatternEngine already persists deterministic (non-L3) events.
                 # Only Layer-3 candidates are handled here; this removes the old
@@ -225,20 +223,95 @@ class HardenedRTSPStream(legacy.RTSPStream):
                 time.sleep(0.1)
 
 
-# Every endpoint and startup handler in main_legacy resolves this module-global
-# class at call time, so this fixes auto-start, restart, collection-start and
-# legacy start paths without removing any existing API.
 legacy.RTSPStream = HardenedRTSPStream
 
 
-# Replace PatternEngine's old raw-RTSP proof callback while retaining its event
-# database, deduplication and alert logic.  Thread-local context lets the callback
-# receive the exact event object without changing the established method API.
 _evidence_context = threading.local()
 _original_trigger_alert_api = legacy.pattern_engine.trigger_alert_api
 
 
+def _parse_record_time(value: object) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def _persist_keyed_event(source_id: str, event: dict) -> bool:
+    """Persist evidence-keyed events without suppressing distinct ALPR detections."""
+    if not source_id or not isinstance(event, dict):
+        return False
+    dedupe_key = str(event.get("dedupe_key") or "").strip()
+    if not dedupe_key:
+        return False
+
+    try:
+        rule_id = int(event.get("id")) if event.get("id") is not None else None
+    except (TypeError, ValueError):
+        rule_id = None
+    if rule_id and rule_id not in legacy.pattern_engine.get_active_rules_for_source(source_id):
+        return False
+
+    try:
+        dedupe_seconds = max(1, int(event.get("dedupe_seconds", 30)))
+    except (TypeError, ValueError):
+        dedupe_seconds = 30
+
+    now = datetime.now(timezone.utc)
+    rule_type = str(event.get("type") or "Unknown Event")
+
+    with legacy.pattern_engine._alert_lock:
+        for existing in legacy.events.get_event_records():
+            if existing.get("camera_id") != source_id:
+                continue
+            if str(existing.get("dedupe_key") or "") != dedupe_key:
+                continue
+            created = _parse_record_time(existing.get("created_at"))
+            if created and (now - created).total_seconds() <= dedupe_seconds:
+                return False
+
+        event_id = f"EVT-{uuid.uuid4().hex[:8].upper()}"
+        confidence = legacy.pattern_engine._event_confidence(event)
+        preferences = get_camera_ai_preferences(source_id)
+        duration = float(preferences.get("evidence_pre_seconds", 10.0)) + float(
+            preferences.get("evidence_post_seconds", 20.0)
+        )
+        record = {
+            "event_id": event_id,
+            "created_at": now.isoformat(),
+            "rule_name": rule_type,
+            "camera_name": source_id,
+            "camera_id": source_id,
+            "location": "Main Location",
+            "priority": event.get("priority", event.get("severity", "high")),
+            "duration": duration,
+            "status": "Active",
+            "category": legacy.pattern_engine._category_for_rule(rule_type),
+            "confidence": confidence,
+            "confidence_source": "gemma" if isinstance(event.get("deep_reasoning"), dict) else "detector" if confidence is not None else "unscored",
+            "acknowledged": False,
+            "message": event.get("message", ""),
+            "video_proof_url": f"/api/augment/events/proofs/{event_id}.mp4",
+            "proof_status": "recording",
+            "proof_validated": False,
+            "dedupe_key": dedupe_key,
+            "event_data": deepcopy(event.get("data", {})),
+        }
+        if not legacy.events.save_event_records([record]):
+            return False
+
+    event_evidence_service.start_event(event_id, source_id, event)
+    logger.info("Persisted keyed VMS event %s %s camera=%s key=%s", event_id, rule_type, source_id, dedupe_key)
+    return True
+
+
 def _trigger_alert_with_annotated_evidence(source_id: str, event: dict):
+    if isinstance(event, dict) and event.get("dedupe_key"):
+        return _persist_keyed_event(source_id, event)
+
     _evidence_context.event = deepcopy(event) if isinstance(event, dict) else {}
     try:
         return _original_trigger_alert_api(source_id, event)
@@ -250,7 +323,7 @@ def _trigger_alert_with_annotated_evidence(source_id: str, event: dict):
 
 
 def _start_annotated_proof(event_id: str, source_id: str, update_event_record):
-    del update_event_record  # EventEvidenceService updates the same SQLite record directly.
+    del update_event_record
     event = getattr(_evidence_context, "event", {})
     event_evidence_service.start_event(event_id, source_id, event)
 
@@ -258,9 +331,6 @@ def _start_annotated_proof(event_id: str, source_id: str, update_event_record):
 legacy.pattern_engine.trigger_alert_api = _trigger_alert_with_annotated_evidence
 legacy.pattern_engine._start_proof_recording = _start_annotated_proof
 
-
-# Register the new English-only camera AI preference API alongside every legacy
-# route already mounted on the application.
 legacy.app.include_router(camera_ai.router)
 
 
@@ -288,7 +358,6 @@ async def get_detection_schema():
     }
 
 
-# Re-export the application and common runtime objects for existing imports.
 app = legacy.app
 active_streams = legacy.active_streams
 get_stream_by_id = legacy.get_stream_by_id
