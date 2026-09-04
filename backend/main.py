@@ -308,7 +308,26 @@ def _persist_keyed_event(source_id: str, event: dict) -> bool:
     return True
 
 
+def _derive_evidence_key(source_id: str, event: dict) -> dict:
+    """Give structured detections such as ALPR their own evidence dedupe key."""
+    if not isinstance(event, dict) or event.get("dedupe_key"):
+        return event
+    data = event.get("data") if isinstance(event.get("data"), dict) else {}
+    try:
+        rule_id = int(event.get("id")) if event.get("id") is not None else None
+    except (TypeError, ValueError):
+        rule_id = None
+    plate = str(data.get("license_plate") or "").strip().upper()
+    if rule_id == 22 and plate:
+        keyed = deepcopy(event)
+        keyed["dedupe_key"] = f"alpr:{source_id}:{plate}"
+        keyed["dedupe_seconds"] = 30
+        return keyed
+    return event
+
+
 def _trigger_alert_with_annotated_evidence(source_id: str, event: dict):
+    event = _derive_evidence_key(source_id, event)
     if isinstance(event, dict) and event.get("dedupe_key"):
         return _persist_keyed_event(source_id, event)
 
